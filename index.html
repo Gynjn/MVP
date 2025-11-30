@@ -1,0 +1,731 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Multi-view Pyramid Transformer: Look Coarser to See Broader</title>
+
+  <!-- Global site tag (gtag.js) - Google Analytics -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-PYVRSFMDRL"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+
+    function gtag() {
+      dataLayer.push(arguments);
+    }
+
+    gtag('js', new Date());
+
+    gtag('config', 'G-PYVRSFMDRL');
+  </script>
+
+  <link href="https://fonts.googleapis.com/css?family=Google+Sans|Noto+Sans|Castoro"
+        rel="stylesheet">
+
+  <link rel="stylesheet" href="./static/css/bulma.min.css">
+  <link rel="stylesheet" href="./static/css/bulma-carousel.min.css">
+  <link rel="stylesheet" href="./static/css/bulma-slider.min.css">
+  <link rel="stylesheet" href="./static/css/fontawesome.all.min.css">
+  <link rel="stylesheet"
+        href="https://cdn.jsdelivr.net/gh/jpswalsh/academicons@1/css/academicons.min.css">
+  <link rel="stylesheet" href="./static/css/index.css">
+  <link rel="icon" href="./static/images/favicon.svg">
+
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+  <script defer src="./static/js/fontawesome.all.min.js"></script>
+  <script src="./static/js/bulma-carousel.min.js"></script>
+  <script src="./static/js/bulma-slider.min.js"></script>
+  <script src="./static/js/index.js"></script>
+</head>
+<body>
+
+
+<!-- <section class="hero">
+  <div class="hero-body">
+    <div class="container is-max-desktop">
+      <div class="columns is-centered">
+        <div class="column has-text-centered">
+          <h1 class="title is-1 publication-title">
+            <span style="color:#94cd6d;">M</span>ulti-
+            <span style="color:#94cd6d;">v</span>iew
+            <span style="color:#94cd6d;">P</span>yramid Transformer: Look Coarser to See Broader
+          </h1>
+          <div class="is-size-5 publication-authors">
+              <span class="author-block">
+                  <a href="https://gynjn.github.io/info/"><span style="color:#000000;">Gyeongjin Kang</span></a><sup style="color: black;">1</sup><span style="color: black;"><sup>*</sup>,</span>
+                  <a href="https://github.com/yang-gwon2"><span style="color:#000000;">Seungkwon Yang</span></a><sup style="color: black;">2</sup><span style="color: black;"><sup>*</sup>,</span>
+                  <a href="https://github.com/stnamjef"><span style="color:#000000;">Seungtae Nam</span></a><sup style="color: black;">2</sup><span style="color: black;">,</span>
+                  <a href="https://github.com/Younggeun-L"><span style="color:#000000;">Younggeun Lee</span></a><sup style="color: black;">1</sup><span style="color: black;">,</span>
+                  <a href="https://github.com/jungcow"><span style="color:#000000;">Jungwoo Kim</span></a><sup style="color: black;">2</sup><span style="color: black;">,</span>
+                  <a href="https://silverbottlep.github.io/index.html"><span style="color:#000000;">Eunbyung Park</span></a><sup style="color: black;">2</sup>
+          </div>
+          <div class="is-size-5 publication-authors" style="margin-top: 1rem;">
+            <div style="display: inline-flex; gap: 1.5rem;">
+              <span class="author-block" style="color: black;"><sup>1</sup>Sungkyunkwan University</span>
+              <span class="author-block" style="color: black;"><sup>2</sup>Yonsei University</span>
+            </div>
+          </div>          
+        </div>
+      </div>
+    </div>
+  </div>
+</section> -->
+
+<body>
+  <div class="header-wrapper">
+    <div class="header-container" id="header-container">
+      <div class="header-content">
+        <!-- <h1 style="font-size: 3rem; font-weight: bold; margin-bottom: 0.1rem; color: rgb(35, 33, 30);"> -->
+          <!-- Multi-view Pyramid Transformer -->
+           <!-- <span style="color: rgb(230, 100, 80);">i</span><span style="color: rgb(230, 183, 53);">L</span><span style="color: rgb(117, 160, 85);">R</span><span style="color: rgb(96, 120, 172);">M</span> -->
+        <!-- </h1> -->
+        <!-- <h1 class="title is-1 publication-title" style="font-weight: bold; margin-bottom: 0.5rem; color: rgb(35, 33, 30);">Multi-view Pyramid Transformer: Look Coarser to See Broader</h1> -->
+        <h1 class="title is-1 publication-title">
+          <span style="color:#93cf6a;">M</span>ulti-<span style="color:#93cf6a;">v</span>iew
+          <span style="color:#93cf6a;">P</span>yramid Transformer
+        </h1>         
+        <h1 class="title is-3 publication-title" style="font-weight: normal; margin-top: -0.4rem; color: rgb(0, 0, 0);">
+          Look Coarser to See Broader
+        </h1>
+        <div class="is-size-5 publication-authors" style="margin-bottom: 0rem; margin-top: 0.5rem; color: black">
+            <span class="author-block">
+                <a href="https://gynjn.github.io/info/"><span style="color:#000000;">Gyeongjin Kang</span></a><sup style="color: black;">1</sup><span style="color: black;"><sup>*</sup>,</span>
+                <a href="https://github.com/yang-gwon2"><span style="color:#000000;">Seungkwon Yang</span></a><sup style="color: black;">2</sup><span style="color: black;"><sup>*</sup>,</span>
+                <a href="https://github.com/stnamjef"><span style="color:#000000;">Seungtae Nam</span></a><sup style="color: black;">2</sup><span style="color: black;">,</span>
+        </div>
+        <div class="is-size-5 publication-authors" style="margin-bottom: 1rem; color: black">
+            <span class="author-block">
+                <a href="https://github.com/Younggeun-L"><span style="color:#000000;">Younggeun Lee</span></a><sup style="color: black;">1</sup><span style="color: black;">,</span>
+                <a href="https://github.com/jungcow"><span style="color:#000000;">Jungwoo Kim</span></a><sup style="color: black;">2</sup><span style="color: black;">,</span>
+                <a href="https://silverbottlep.github.io/index.html"><span style="color:#000000;">Eunbyung Park</span></a><sup style="color: black;">2</sup>
+        </div>        
+        <div class="is-size-5 publication-authors" style="margin-top: 1rem;">
+          <div style="display: inline-flex; gap: 1.5rem;">
+            <span class="author-block" style="color: black;"><sup>1</sup>Sungkyunkwan University</span>
+            <span class="author-block" style="color: black;"><sup>2</sup>Yonsei University</span>
+          </div>
+        </div>  
+        <div class="publication-links" style="margin-bottom: -1rem; margin-top: 1rem;">
+          <!-- PDF Link. -->
+          <span class="link-block">
+            <a href="https://arxiv.org/pdf/2507.23277"
+                class="external-link button is-normal is-dark">
+              <span class="icon">
+                  <i class="fas fa-file-pdf"></i>
+              </span>
+              <span>Paper</span>
+            </a>
+          </span>
+          <span class="link-block">
+            <a href="https://arxiv.org/abs/2507.23277"
+                class="external-link button is-normal is-dark">
+              <span class="icon">
+                  <i class="ai ai-arxiv"></i>
+              </span>
+              <span>arXiv</span>
+            </a>
+          </span>
+          <!-- Code Link. -->
+          <span class="link-block">
+            <a href="https://github.com/Gynjn/iLRM"
+                class="external-link button is-normal is-dark">
+              <span class="icon">
+                  <i class="fab fa-github"></i>
+              </span>
+              <span>Code</span>
+              </a>
+          </span>
+        </div>                   
+      </div> 
+      <div class="header-video">
+        <video id="teaser" muted playsinline draggable="false">
+          <source src="./static/videos/main_teaser.mp4" type="video/mp4">
+        </video>
+        <p class="is-size-6 has-text-grey">
+          Teaser video is generated from Veo3.
+        </p>        
+      </div>
+    </div>
+  </div>
+</body>
+
+<section class="hero teaser">
+  <div class="container is-max-desktop">
+    <div class="hero-body" style="margin-top: 3rem;">
+      <img src="./static/images/teaser.jpg"/>
+      <h2 class="subtitle has-text-centered">
+        <span class="dnerf">MVP handles a wide range of input views, reconstructing diverse large-scale scenes within 0.1–2.0 seconds.</span>
+      </h2>
+
+    </div>
+  </div>
+</section>
+
+<section class="section">
+  <div class="container is-max-desktop">
+    <!-- Abstract. -->
+    <div class="columns is-centered has-text-centered">
+      <div class="column is-four-fifths" style="margin-top: -2rem;">
+        <h2 class="title is-3">Abstract</h2>
+        <div class="content has-text-justified">
+          <p>
+            We propose Multi-view Pyramid Transformer (<b>MVP</b>), 
+            a scalable multi-view transformer architecture 
+            that directly reconstructs large 3D scenes from 
+            tens to hundreds of images in a single forward pass. 
+            Drawing on the idea of ``looking broader to see the whole, looking finer to see the details," 
+            MVP is built on two core design principles: 
+            1) a local-to-global inter-view hierarchy that gradually broadens the model's perspective 
+            from local views to groups and ultimately the full scene, and 
+            2) a fine-to-coarse intra-view hierarchy that starts from detailed spatial representations 
+            and progressively aggregates them into compact, information-dense tokens. 
+            This dual hierarchy achieves both computational efficiency and representational richness, 
+            enabling fast reconstruction of large and complex scenes. 
+            We validate MVP on diverse datasets and show that, 
+            when coupled with 3D Gaussian Splatting as the underlying 3D representation, 
+            it achieves state-of-the-art generalizable reconstruction quality 
+            while maintaining high efficiency and scalability across a wide range of view configurations.
+          </p>
+          <!-- <p>
+            Toward a scalable and efficient feed-forward 3D reconstruction, 
+            we introduce an iterative Large 3D Reconstruction Model (<b><i>iLRM</i></b>) 
+            that generates 3D Gaussian representations through an iterative refinement mechanism, 
+            guided by three core principles: 
+            (1) decoupling the scene representation from input-view images to enable <b><i>compact 3D representations</i></b>; 
+            (2) decomposing fully-attentional multi-view interactions into a <b><i>two-stage attention</i></b> scheme to reduce computational costs; 
+            and (3) injecting <b><i>high-resolution information at every layer</i></b> to achieve high-fidelity reconstruction.
+            Experimental results on widely used datasets, such as RE10K and DL3DV, demonstrate that <b><i>iLRM</i></b> outperforms existing methods in both reconstruction quality and speed.            
+          </p> -->
+        </div>
+      </div>
+    </div>
+    <!--/ Abstract. -->
+  </div>
+</section>
+
+
+<section class="hero is-light is-small">
+  <div class="hero-body">
+    <div class="container">
+      <div id="results-carousel" class="carousel results-carousel" data-slides-to-show="2">
+        <div class="item item-140">
+          <video poster="" id="140" autoplay controls muted loop playsinline height="100%">
+            <source src="./static/videos/32_teaser/140.mp4"
+                    type="video/mp4">
+          </video>
+        </div>
+        <div class="item item-tiger">
+          <video poster="" id="tiger" autoplay controls muted loop playsinline height="100%">
+            <source src="./static/videos/32_teaser/tiger.mp4"
+                    type="video/mp4">
+          </video>
+        </div>
+        <div class="item item-tree">
+          <video poster="" id="tree" autoplay controls muted loop playsinline height="100%">
+            <source src="./static/videos/32_teaser/tree.mp4"
+                    type="video/mp4">
+          </video>
+        </div>
+        <div class="item item-redcar">
+          <video poster="" id="redcar" autoplay controls muted loop playsinline height="100%">
+            <source src="./static/videos/32_teaser/redcar.mp4"
+                    type="video/mp4">
+          </video>
+        </div>
+        <div class="item item-ff">
+          <video poster="" id="ff" autoplay controls muted loop playsinline height="100%">
+            <source src="./static/videos/32_teaser/ff.mp4"
+                    type="video/mp4">
+          </video>
+        </div>
+        <div class="item item-clothes">
+          <video poster="" id="clothes" autoplay controls muted loop playsinline height="100%">
+            <source src="./static/videos/32_teaser/clothes.mp4"
+                    type="video/mp4">
+          </video>
+        </div>        
+      </div>
+      <div class="has-text-centered">
+        <p class="subtitle is-5">Inference results on the DL3DV dataset using 32 input images with a resolution of 960×540.</p>
+      </div>      
+    </div>
+  </div>
+</section>
+
+
+<section class="section">
+  <div class="container is-max-desktop">
+
+    <!-- Core architectural design. -->
+    <div class="columns is-centered">
+      <div class="column is-full-width">
+        <h2 class="title is-3">Core architectural design</h2>   
+        <div class="box m-5">
+        <div class="content has-text-centered">
+          <img src="static/images/main_arch.png" width="100%" alt="model" />
+        </div>
+        </div>
+        <div class="content has-text-justified">
+          <p>
+            Given tokenized inputs, our model applies a three stage hierarchy of alternating attention blocks, 
+            varying in both self-attention coverage and token resolution. 
+            A Pyramidal Feature Aggregation module fuses the outputs from all stages, which are then passed to a final head for dense prediction.
+          </p>
+        </div>             
+      </div>
+    </div>
+
+    <div class="columns is-centered">
+      <div class="column is-full-width">
+        <h2 class="title is-3">Quantitative Comparison</h2>   
+        <div class="content has-text-justified">
+          <p>
+            We compare <span style="color:#93cf6a;"><b>MVP</b></span> against recent feed-forward 3D reconstruction methods, <span style="color:#3f5bc1;"><b>Long-LRM</b></span>, and <span style="color:#d4782d;"><b>iLRM</b></span>.
+            We evaluate the methods on in-domain dataset, <b>DL3DV</b>, and out-of-domain datasets, <b>Tanks&Temples</b> and <b>Mip-NeRF360</b>. The resolution of input images is <b>960x540</b> for all methods.
+          </p>       
+
+          <div class="box m-5">
+            <div class="content has-text-centered">
+              <img src="static/images/dl3dv.png" width="120%" alt="dl3dv" />
+            </div>
+          </div>
+
+          <!-- 2) Two figures side by side, inside a box of the same size -->
+          <div class="box m-5">
+            <div class="columns">
+              <div class="column">
+                <div class="content has-text-centered">
+                  <img src="static/images/tnt.png" width="120%" alt="tnt" />
+                </div>
+              </div>
+
+              <div class="column">
+                <div class="content has-text-centered">
+                  <img src="static/images/mip.png" width="120%" alt="mip" />
+                </div>
+              </div>
+            </div>
+          </div>   
+
+        </div>             
+      </div>
+    </div>
+
+    <div class="columns is-centered">
+      <div class="column is-full-width">
+        <h2 class="title is-3" style="margin-top: 1.0rem">Qualitative Comparison</h2>
+        <div class="content has-text-justified">
+          <p>
+            <b>Use mouse to slide the handle left/right to compare the two methods.</b> <b>It might take a few seconds to load the videos.</b>            
+          </p>
+        </div>
+
+        <!-- <h2 class="title is-4" style="margin-top: 1.0rem">
+          128-view (<span style="color:#A8D18D;">0.77s</span> vs. <span style="color:#E25353;">6.39s</span>)
+        </h2>  -->
+
+        <!-- <div class="content has-text-centered">
+          <h2 class="title is-5" style="margin-bottom: -0.5rem;">128-view reconstruction</h2> 
+          <div class="video-slider-container">
+            <div class="video-slider-wrapper js-video-slider">
+              <video class="video-left" autoplay muted loop playsinline>
+                <source src="static/videos/128_comp/128mvp.mp4" type="video/mp4">
+              </video>
+              <video class="video-right" autoplay muted loop playsinline>
+                <source src="static/videos/128_comp/128llrm.mp4" type="video/mp4">
+              </video>
+
+              <div class="slider-bar"></div>
+              <div class="slider-handle"></div>
+
+              <div class="video-label video-label-left"><span style="color:#A8D18D;">MVP (Ours)</span></div>
+              <div class="video-label video-label-right"><span style="color:#3f5bc1;">Long-LRM</span></div>
+
+              <button class="video-toggle-button">
+                <img class="toggle-icon" src="static/images/pause.png" alt="Pause" />
+              </button>
+            </div>
+          </div>     
+        </div>           -->
+
+        <div class="content has-text-centered">
+          <div class="video-header-row">
+            <h2 class="title is-5" style="margin-bottom: -0.5rem;">32-view reconstruction</h2>
+            <!-- NEW: right-video switch button (outside video, upper right) -->
+            <button class="video-change-button" style="color:#fdfffb; margin-bottom: -2rem; margin-right: 2rem;">
+              Right: Long-LRM
+            </button>
+          </div>
+
+          <div class="video-slider-container" data-view="32">
+            <div class="video-slider-wrapper js-video-slider">
+              <video class="video-left" autoplay muted loop playsinline>
+                <source src="static/videos/32_comp/32mvp.mp4" type="video/mp4">
+              </video>
+              <video class="video-right" autoplay muted loop playsinline>
+                <source src="static/videos/32_comp/32llim.mp4" type="video/mp4">
+              </video>
+
+              <!-- slider bar + handle -->
+              <div class="slider-bar"></div>
+              <div class="slider-handle"></div>
+
+              <div class="video-label video-label-left">
+                <span style="color:#A8D18D;">MVP (0.17s)</span>
+              </div>
+              <div class="video-label video-label-right">
+                <span style="color:#3f5bc1;">Long-LRM (0.84s)</span>
+              </div>
+
+              <!-- play/pause stays inside the video overlay -->
+              <button class="video-toggle-button">
+                <img class="toggle-icon" src="static/images/pause.png" alt="Pause" />
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="content has-text-centered">
+          <div class="video-header-row">
+            <h2 class="title is-5" style="margin-bottom: -0.5rem;">128-view reconstruction</h2>
+            <!-- NEW: right-video switch button (outside video, upper right) -->
+            <button class="video-change-button" style="color:#fdfffb; margin-bottom: -2rem; margin-right: 2rem;">
+              Right: Long-LRM
+            </button>
+          </div>
+
+          <div class="video-slider-container" data-view="128">
+            <div class="video-slider-wrapper js-video-slider">
+              <video class="video-left" autoplay muted loop playsinline>
+                <source src="static/videos/128_comp/128mvp.mp4" type="video/mp4">
+              </video>
+              <video class="video-right" autoplay muted loop playsinline>
+                <source src="static/videos/128_comp/128llim.mp4" type="video/mp4">
+              </video>
+
+              <!-- slider bar + handle -->
+              <div class="slider-bar"></div>
+              <div class="slider-handle"></div>
+
+              <div class="video-label video-label-left">
+                <span style="color:#A8D18D;">MVP (0.77s)</span>
+              </div>
+              <div class="video-label video-label-right">
+                <span style="color:#3f5bc1;">Long-LRM (6.39s)</span>
+              </div>
+
+              <!-- play/pause stays inside the video overlay -->
+              <button class="video-toggle-button">
+                <img class="toggle-icon" src="static/images/pause.png" alt="Pause" />
+              </button>
+            </div>
+          </div>
+        </div>        
+
+        
+      </div>
+    </div>
+
+
+  </div>
+</section>
+
+<section class="section" id="BibTeX">
+  <div class="container is-max-desktop content" style="margin-top: -2rem;">
+    <h2 class="title">BibTeX</h2>
+      <!-- <pre><code style="font-size: 1.25em;">
+@article{kang2025ilrm,
+  title={iLRM: An Iterative Large 3D Reconstruction Model},
+  author={Kang, Gyeongjin and Nam, Seungtae and Sun, Xiangyu and Khamis, Sameh and Mohamed, Abdelrahman and Park, Eunbyung},
+  journal={arXiv preprint arXiv:2507.23277},
+  year={2025},
+}</code></pre> -->
+  </div>
+</section>
+<footer class="footer">
+  <div class="container">
+    <div class="content has-text-centered">
+      <a class="icon-link"
+         href="https://arxiv.org/pdf/2507.23277">
+        <i class="fas fa-file-pdf"></i>
+      </a>
+      <a class="icon-link" href="https://github.com/Gynjn" class="external-link" disabled>
+        <i class="fab fa-github"></i>
+      </a>
+    </div>
+    <div class="columns is-centered">
+      <div class="column is-8">
+        <div class="content">
+          <p>
+            Commons Attribution-ShareAlike 4.0 International License</a>.
+            This page was built using the <a href="https://github.com/eliahuhorwitz/Academic-project-page-template" target="_blank">Academic Project Page Template</a> 
+            which was adopted from the <a href="https://nerfies.github.io" target="_blank">Nerfies</a> project page.
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<script>
+  window.addEventListener("DOMContentLoaded", () => {
+    // loop over each slider block
+    document.querySelectorAll(".video-slider-container").forEach((container) => {
+      const wrapper      = container.querySelector(".js-video-slider");
+      const sliderBar    = wrapper.querySelector(".slider-bar");
+      const sliderHandle = wrapper.querySelector(".slider-handle");
+      const videoLeft    = wrapper.querySelector(".video-left");
+      const videoRight   = wrapper.querySelector(".video-right");
+      const toggleBtn    = wrapper.querySelector(".video-toggle-button");
+      const icon         = wrapper.querySelector(".toggle-icon");
+
+      // button is now outside the video, in the same .content as the container
+      const changeBtn    = container.parentElement.querySelector(".video-change-button");
+      const rightLabel   = wrapper.querySelector(".video-label-right span");
+
+      const baseView = container.dataset.view || "32";
+
+      // --- slider center ---
+      const setCenter = () => {
+        videoRight.style.clipPath = "inset(0 0 0 50%)";
+        sliderBar.style.left      = "50%";
+        sliderHandle.style.left   = "50%";
+      };
+      setCenter();
+
+      // --- mousemove slider ---
+      wrapper.addEventListener("mousemove", (e) => {
+        const bounds  = wrapper.getBoundingClientRect();
+        const offsetX = e.clientX - bounds.left;
+        const percent = offsetX / bounds.width;
+        const clipPercent = Math.min(100, Math.max(0, percent * 100));
+
+        videoRight.style.clipPath = `inset(0 0 0 ${clipPercent}%)`;
+        sliderBar.style.left      = `${clipPercent}%`;
+        sliderHandle.style.left   = `${clipPercent}%`;
+      });
+
+      wrapper.addEventListener("mouseleave", () => {
+        setCenter();
+      });
+
+      let isPlaying = true;
+
+      // ==========================
+      // Soft continuous sync (left is master, right follows)
+      // ==========================
+      let isSoftSyncing   = false;
+      const SYNC_INTERVAL = 100;   // ms
+      const SYNC_THRESHOLD = 0.03; // seconds (~30ms)
+
+      function startSoftSync() {
+        if (isSoftSyncing) return;
+        isSoftSyncing = true;
+
+        const syncLoop = () => {
+          if (!isSoftSyncing || videoLeft.paused) {
+            isSoftSyncing = false;
+            return;
+          }
+
+          const diff = videoLeft.currentTime - videoRight.currentTime;
+          if (Math.abs(diff) > SYNC_THRESHOLD) {
+            videoRight.currentTime = videoLeft.currentTime;
+          }
+
+          setTimeout(syncLoop, SYNC_INTERVAL);
+        };
+
+        syncLoop();
+      }
+
+      function stopSoftSync() {
+        isSoftSyncing = false;
+      }
+
+      // --- play / pause button ---
+      toggleBtn.addEventListener("click", () => {
+        if (isPlaying) {
+          videoLeft.pause();
+          videoRight.pause();
+          stopSoftSync();
+          icon.src = "static/images/play.png";
+          icon.alt = "Play";
+        } else {
+          videoLeft.play();
+          videoRight.play();
+          startSoftSync();
+          icon.src = "static/images/pause.png";
+          icon.alt = "Pause";
+        }
+        isPlaying = !isPlaying;
+      });
+
+      // ==========================
+      // right-video switching (Long-LRM / iLRM)
+      // ==========================
+      const rightVideos = [
+        {
+          key: "llrm",
+          toggle_label: "Long-LRM",
+          label32:  "Long-LRM (0.84s)",
+          label128: "Long-LRM (6.39s)",
+          color: "#3f5bc1", // blue-ish
+        },
+        {
+          key: "ilrm",
+          toggle_label: "iLRM",
+          label32:  "iLRM (0.53s)",
+          label128: "iLRM (5.61s)",
+          color: "#d4782d", // orange-ish
+        },
+      ];
+
+      let currentRightIndex = 0;  // start with Long-LRM
+
+      function setRightVideo(idx) {
+        const info = rightVideos[idx];
+        currentRightIndex = idx;
+
+        const syncTime   = videoLeft.currentTime || 0;
+        const wasPlaying = !videoLeft.paused && isPlaying;
+
+        const srcPath = `static/videos/${baseView}_comp/${baseView}${info.key}.mp4`;          
+
+        // pause right before changing source
+        videoRight.pause();
+
+        const source = videoRight.querySelector("source");
+        if (!source) return;
+        source.src = srcPath;
+        videoRight.load();
+
+        // wait until browser can decode frames
+        function onCanPlay() {
+          videoRight.removeEventListener("canplay", onCanPlay);
+
+          let targetTime = syncTime;
+          if (!isNaN(videoRight.duration) && videoRight.duration > 0) {
+            targetTime = Math.min(syncTime, videoRight.duration);
+          }
+
+          function onSeeked() {
+            videoRight.removeEventListener("seeked", onSeeked);
+            if (wasPlaying) {
+              videoRight.play();
+            }
+          }
+
+          videoRight.addEventListener("seeked", onSeeked);
+          videoRight.currentTime = targetTime;
+        }
+
+        videoRight.addEventListener("canplay", onCanPlay);
+
+        const labelText =
+          baseView === "128"
+            ? (info.label128 || info.toggle_label)
+            : (info.label32  || info.toggle_label);
+
+        // update UI texts
+        if (rightLabel) {
+          rightLabel.textContent = labelText;
+          rightLabel.style.color = info.color;
+        }
+        if (changeBtn) {
+          changeBtn.textContent = `Right: ${info.toggle_label}`;
+        }
+      }
+
+      // init + click handler
+      if (changeBtn) {
+        setRightVideo(currentRightIndex);
+
+        changeBtn.addEventListener("click", () => {
+          const next = (currentRightIndex + 1) % rightVideos.length;
+          setRightVideo(next);
+        });
+      }
+    });
+  });
+</script>
+
+<!-- <script>
+  window.addEventListener("DOMContentLoaded", () => {
+    document.querySelectorAll(".js-video-slider").forEach((wrapper) => {
+      const sliderBar    = wrapper.querySelector(".slider-bar");
+      const sliderHandle = wrapper.querySelector(".slider-handle");
+      const videoLeft    = wrapper.querySelector(".video-left");
+      const videoRight   = wrapper.querySelector(".video-right");
+      const toggleBtn    = wrapper.querySelector(".video-toggle-button");
+      const icon         = wrapper.querySelector(".toggle-icon");
+
+      const setCenter = () => {
+        videoRight.style.clipPath = "inset(0 0 0 50%)";
+        sliderBar.style.left      = "50%";
+        sliderHandle.style.left   = "50%";
+      };
+      setCenter();
+
+      wrapper.addEventListener("mousemove", (e) => {
+        const bounds  = wrapper.getBoundingClientRect();
+        const offsetX = e.clientX - bounds.left;
+        const percent = offsetX / bounds.width;
+        const clipPercent = Math.min(100, Math.max(0, percent * 100));
+
+        videoRight.style.clipPath = `inset(0 0 0 ${clipPercent}%)`;
+        sliderBar.style.left      = `${clipPercent}%`;
+        sliderHandle.style.left   = `${clipPercent}%`;
+      });
+
+      wrapper.addEventListener("mouseleave", () => {
+        setCenter();
+      });
+
+      let isPlaying = true;
+      toggleBtn.addEventListener("click", () => {
+        if (isPlaying) {
+          videoLeft.pause();
+          videoRight.pause();
+          icon.src = "static/images/play.png";
+          icon.alt = "Play";
+        } else {
+          videoLeft.play();
+          videoRight.play();
+          icon.src = "static/images/pause.png";
+          icon.alt = "Pause";
+        }
+        isPlaying = !isPlaying;
+      });   
+    });
+  });
+</script> -->
+
+<script>
+  window.addEventListener("DOMContentLoaded", () => {
+    const video = document.getElementById("teaser");
+    const wrapper = document.querySelector(".header-video");
+
+    if (!video || !wrapper) return;
+
+    // Make sure it shows the first frame only
+    // video.addEventListener("loadeddata", () => {
+    //   video.currentTime = 0.1;
+    //   video.pause();
+    // });
+
+    wrapper.addEventListener("mouseenter", () => {
+      video.play();
+    });
+
+    wrapper.addEventListener("mouseleave", () => {
+      video.pause();
+      video.currentTime = 0.1; // back to first frame
+    });
+  });
+</script>
+
+</section>
+
+</body>
+</html>
