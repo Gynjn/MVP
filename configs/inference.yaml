@@ -1,0 +1,60 @@
+model:
+  class_name: model.MVPModel
+
+  patch_factor: 2
+  dim1: 256
+  dim2: 512
+  dim3: 1024
+  num_register_tokens: 4
+  head_dim: 64
+  inter_multi: 4
+  qk_norm: true
+  stage1_nlayer: 2
+  stage2_nlayer: 4
+  stage3_nlayer: 8
+  group_size: 4
+  patch_size: 8
+  in_channels: 12
+
+  gaussians:
+    sh_degree: 1
+    opacity_degree: 2
+    near_plane: 0.01
+    far_plane: 1000000.0
+    scale_bias: -6.9
+    scale_max: -1.2
+    opacity_bias: -2.0
+    align_to_pixel: true
+    max_dist: 500.0
+
+data:
+  data_path: "data/dl3dv_eval.txt"
+  json_path: "data/dl3dv_fold_8_kmeans_input_idx.json"
+  resize_h: 540
+  random_crop: 1.0
+  square_crop: false
+
+  input_frame_select_type: "kmeans"
+  target_frame_select_type: "uniform_every"
+  num_input_frames: 16
+  num_target_frames: 0
+  target_has_input: false
+  min_frame_dist: all
+  max_frame_dist: 256
+  shuffle_input_prob: 0.0
+  reverse_input_prob: 0.0
+  target_uniform_every: 8
+
+inference:
+  dataset_name: dataset.Dataset
+  amp_dtype: bf16
+  use_amp: true  
+  api_key_path: ./configs/api_keys.yaml
+  batch_size_per_gpu: 1
+  num_threads: 8
+  num_workers: 4
+  prefetch_factor: 4  
+  use_tf32: true
+  ckpt_path: ./pretrained_model/mvp.pt
+  out_dir: ./experiments/inference
+  compute_metrics: true

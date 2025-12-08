@@ -1,0 +1,9 @@
+mipnerf360/bicycle/opencv_cameras.json
+mipnerf360/bonsai/opencv_cameras.json
+mipnerf360/counter/opencv_cameras.json
+mipnerf360/garden/opencv_cameras.json
+mipnerf360/kitchen/opencv_cameras.json
+mipnerf360/room/opencv_cameras.json
+mipnerf360/flowers/opencv_cameras.json
+mipnerf360/stump/opencv_cameras.json
+mipnerf360/treehill/opencv_cameras.json
