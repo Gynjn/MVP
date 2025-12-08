@@ -56,3 +56,5 @@ This project is built on many amazing research works, thanks a lot to all the au
 - [Long-LRM](https://github.com/arthurhero/Long-LRM)
 - [LaCT](https://github.com/a1600012888/LaCT)
 - [iLRM](https://github.com/Gynjn/iLRM)
+- [ProPE](https://github.com/liruilong940607/prope)
+- [LVT](https://toobaimt.github.io/lvt/)
