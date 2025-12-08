@@ -309,14 +309,14 @@ body {
 @media (min-width: 600px) {
   .header-container {
     display: flex; /* Use flexbox for positioning on larger screens */
-    justify-content: space-between; /* Space between the content and image */
+    justify-content: center; /* Space between the content and image */
     align-items: center; /* Align items vertically */
     padding: 30px 80px; /* Increase padding for larger screens */
   }
 
   .header-content {
     max-width: calc(90% - 20px); /* Adjust width to include margin */
-    text-align: left; /* Align text to the left for larger screens */
+    text-align: center; /* Align text to the left for larger screens */
     margin-right: 5px; /* Add margin to the right of the header content */
   }
 
@@ -352,5 +352,4 @@ body {
     height: auto;                 /* maintain aspect ratio */
     display: block;               /* remove inline spacing */
   }
-
 }
