@@ -42,7 +42,7 @@ CUDA_VISIBLE_DEVICES=0 python inference.py --config configs/inference.yaml
 
 ## TODO List
 - [ ] Training code
-- [ ] Preprocessed Tanks&Temple and MipNeRF-360 dataset
+- [ ] Preprocessed Tanks&Temple and Mip-NeRF360 dataset
 
 ## Citation
 <!--   -->
