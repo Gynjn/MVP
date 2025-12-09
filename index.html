@@ -415,7 +415,14 @@
               <div class="video-label video-label-right">
                 <span style="color:#3f5bc1;">Long-LRM (6.39s)</span>
               </div>
-            </div> </div>   </div>     
+
+              <button class="video-toggle-button">
+                <img class="toggle-icon" src="static/images/pause.png" alt="Pause" />
+              </button>
+              
+            </div>
+          </div>
+        </div>     
 
         
           <div class="content has-text-centered">
@@ -551,6 +558,7 @@
     // loop over each slider block
     document.querySelectorAll(".video-slider-container").forEach((container) => {
       const wrapper      = container.querySelector(".js-video-slider");
+      if (!wrapper) return;
       const sliderBar    = wrapper.querySelector(".slider-bar");
       const sliderHandle = wrapper.querySelector(".slider-handle");
       const videoLeft    = wrapper.querySelector(".video-left");
