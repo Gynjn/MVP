@@ -294,6 +294,37 @@ body {
   margin: 0 auto;
 }
 
+.image-compare-container {
+  position: relative;
+  width: 100%;
+  max-width: 800px; /* Adjust to your preference */
+  margin: 0 auto;
+  overflow: hidden; /* Ensures no spillover */
+  cursor: col-resize; /* Shows drag cursor */
+  line-height: 0; /* Removes weird gap under images */
+}
+
+/* The Background Image (Right side logic) */
+.img-comp-right {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+/* The Foreground Image (Left side logic) */
+.img-comp-left {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover; /* Ensures it matches the underlying image size */
+  
+  /* Initial Clip: Show 50% of the left image */
+  clip-path: inset(0 50% 0 0); 
+  z-index: 2;
+}
+
 @media (max-width: 768px) {
   .header-content h2 {
     font-size: 1.2em !important;

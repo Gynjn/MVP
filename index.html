@@ -142,12 +142,14 @@
 </body>
 
 <section class="hero teaser">
-  <div class="container">
-    <div class="hero-body" style="margin-top: 3rem;">
-        <video poster="" id="teaser" autoplay controls muted loop playsinline height="90%" style="border-radius: 16px; overflow: hidden;">
-          <source src="./static/videos/main_teaser.mp4" type="video/mp4">
-        </video>
-    </div>
+  <div class="container is-max-desktop">
+      <div class="video">
+        <div class="hero-body" style="margin-top: 1rem;">
+          <video poseter="" id="teaser" autoplay muted loop playsinline height="100%" style="border-radius: 16px; overflow: hidden;">
+            <source src="./static/videos/main_teaser.mp4" type="video/mp4">
+          </video>
+        </div>
+      </div>
   </div>
 </section>
 
@@ -295,7 +297,18 @@
                 </div>
               </div>
             </div>
-          </div>   
+          </div>
+
+          <p>
+            We additionally compare <span style="color:#BF571B;">M</span><span style="color:#638C45;">V</span><span style="color:#3573B1;">P</span> against recent feed-forward 3D reconstruction methods, <span style="color:#3f5bc1;"><b>CLiFT</b></span>, and <span style="color:#d4782d;"><b>iLRM</b></span>.
+            All methods were trained exlusively on RealEstate10K dataset of resolution,<b>960x540</b>.
+          </p>   
+
+          <div class="box m-5">
+            <div class="content has-text-centered">
+              <img src="static/images/re10k.png" alt="re10k" style="max-height: 200px; width: auto;" />
+            </div>
+          </div>
 
         </div>             
       </div>
@@ -306,7 +319,8 @@
         <h2 class="title is-3" style="margin-top: 1.0rem">Qualitative Comparison</h2>
         <div class="content has-text-justified">
           <p>
-            <b>Use mouse to slide the handle left/right to compare the two methods.</b> <b>It might take a few seconds to load the videos.</b>            
+            <b>Use mouse to slide the handle left/right to compare the two methods.</b> <b>It might take a few seconds to load the videos.</b><br>            
+            <b>Please use the buttons on the right above each comparison to toggle between different baseline models.</b>            
           </p>
         </div>
 
@@ -378,7 +392,6 @@
         <div class="content has-text-centered">
           <div class="video-header-row">
             <h2 class="title is-5" style="margin-bottom: -0.5rem;">128-view reconstruction</h2>
-            <!-- NEW: right-video switch button (outside video, upper right) -->
             <button class="video-change-button" style="color:#fdfffb; margin-bottom: -2rem; margin-right: 2rem;">
               Right: Long-LRM
             </button>
@@ -393,7 +406,6 @@
                 <source src="static/videos/128_comp/128llim.mp4" type="video/mp4">
               </video>
 
-              <!-- slider bar + handle -->
               <div class="slider-bar"></div>
               <div class="slider-handle"></div>
 
@@ -403,32 +415,89 @@
               <div class="video-label video-label-right">
                 <span style="color:#3f5bc1;">Long-LRM (6.39s)</span>
               </div>
+            </div> </div>   </div>     
 
-              <!-- play/pause stays inside the video overlay -->
-              <button class="video-toggle-button">
-                <img class="toggle-icon" src="static/images/pause.png" alt="Pause" />
+        
+          <div class="content has-text-centered">
+            <div class="video-header-row">
+              <h2 class="title is-5" style="margin-bottom: -0.5rem;">4-view error map results on RealEstate10K</h2>
+              <button class="video-change-button" id="img-toggle-btn" style="color:#fdfffb; margin-bottom: -2rem; margin-right: 2rem;">
+                Right: CLiFT
               </button>
             </div>
-          </div>
-        </div>        
+
+            <div class="video-slider-container" style="max-width: 400px; margin: 2rem auto; height: auto">
+              <div class="video-slider-wrapper" id="image-slider-wrapper">
+                
+                <img src="static/images/ours.png" class="img-left" alt="MVP">
+                <img src="static/images/clift.png" class="img-right" id="img-right-element" alt="Comparison">
+
+                <div class="slider-bar"></div>
+                <div class="slider-handle"></div>
+
+                <div class="video-label video-label-left">
+                  <span style="color:#A8D18D;">MVP (Ours)</span>
+                </div>
+                <div class="video-label video-label-right" id="img-right-label">
+                  <span style="color:#3f5bc1;">CLiFT</span>
+                </div>
+              </div>
+            </div>
+        </div>
+
+        <style>
+            /* Ensure images overlap perfectly like videos */
+            #image-slider-wrapper {
+              position: relative;
+              overflow: hidden;
+              padding-bottom: 100%; 
+              height: 0;
+            }
+
+            #image-slider-wrapper img {
+              position: absolute;
+              top: 0;
+              left: 0;
+              width: 100%;
+              height: 100%;
+              object-fit: cover;
+              user-select: none;
+            }
+
+            #image-slider-wrapper .img-left {
+              z-index: 1;
+            }
+
+            #image-slider-wrapper .img-right {
+              z-index: 2;
+              clip-path: inset(0 0 0 50%);
+            }
+            
+            #image-slider-wrapper .slider-bar,
+            #image-slider-wrapper .slider-handle,
+            #image-slider-wrapper .video-label {
+              z-index: 10;
+            }
+        </style>
 
         
       </div>
     </div>
-
-    <div class="columns is-centered">
-      <div class="column is-full-width">
-        <h2 class="title is-3">Inference Time Comparison</h2>   
-        <div class="content has-text-justified">
-          <p>
-            We compare the inference time as a function of the number of input views. We measure all timings at an input resolution of 960x540 on a H100 GPU.
-            Note that the inference time only accounts for the generation of 3D Gaussians. For novel view rendering, Long-LRM encounters a memory error when using
-            more than 128 input views.
-          </p>
-        </div>         
-        <video poster="" id="time" muted height="100%" style="border-radius: 16px; overflow: hidden;" controls>
-          <source src="./static/videos/time_graphs.mp4" type="video/mp4">
-        </video>            
+    <div class="container">
+      <div class="columns is-centered">
+        <div class="column is-full-width">
+          <h2 class="title is-3">Inference Time Comparison</h2>   
+          <div class="content has-text-justified">
+            <p>
+              We compare the inference time as a function of the number of input views. We measure all timings at an input resolution of 960x540 on a H100 GPU.
+              Note that the inference time only accounts for the generation of 3D Gaussians. For novel view rendering, Long-LRM encounters a memory error when using
+              more than 128 input views.
+            </p>
+          </div>         
+          <video poster="" id="time" muted height="100%" autoplay controls loop style="border-radius: 16px; overflow: hidden; display: block; margin: 0 auto;" >
+            <source src="./static/videos/time_graphs.mp4" type="video/mp4">
+          </video>            
+        </div>
       </div>
     </div>
 
@@ -726,6 +795,75 @@
     wrapper.addEventListener("mouseleave", () => {
       video.pause();
       video.currentTime = 0.1; // back to first frame
+    });
+  });
+</script>
+
+<script>
+  window.addEventListener("DOMContentLoaded", () => {
+    const wrapper = document.getElementById("image-slider-wrapper");
+    const imgRight = document.getElementById("img-right-element");
+    const sliderBar = wrapper.querySelector(".slider-bar");
+    const sliderHandle = wrapper.querySelector(".slider-handle");
+    const changeBtn = document.getElementById("img-toggle-btn");
+    const rightLabel = document.getElementById("img-right-label").querySelector("span");
+
+    // --- 1. Slider Logic ---
+    const setCenter = () => {
+      imgRight.style.clipPath = "inset(0 0 0 50%)";
+      sliderBar.style.left = "50%";
+      sliderHandle.style.left = "50%";
+    };
+    setCenter();
+
+    wrapper.addEventListener("mousemove", (e) => {
+      const bounds = wrapper.getBoundingClientRect();
+      const offsetX = e.clientX - bounds.left;
+      const percent = offsetX / bounds.width;
+      const clipPercent = Math.min(100, Math.max(0, percent * 100));
+
+      // Clip the Left side of the Right Image to reveal the Left Image underneath
+      imgRight.style.clipPath = `inset(0 0 0 ${clipPercent}%)`;
+      sliderBar.style.left = `${clipPercent}%`;
+      sliderHandle.style.left = `${clipPercent}%`;
+    });
+
+    // Optional: Reset on mouse leave
+    wrapper.addEventListener("mouseleave", () => {
+      // setCenter(); // Uncomment if you want it to snap back to center
+    });
+
+    // --- 2. Switch Logic (CLiFT <-> iLRM) ---
+    // Configuration for the right image
+    const methods = [
+      {
+        name: "CLiFT",
+        src: "static/images/clift.png",
+        color: "#3f5bc1" // Blue-ish
+      },
+      {
+        name: "iLRM",
+        src: "static/images/ilrm.png",
+        color: "#d4782d" // Orange-ish
+      }
+    ];
+
+    let currentIndex = 0; // Start with CLiFT
+
+    changeBtn.addEventListener("click", () => {
+      // Toggle index
+      currentIndex = (currentIndex + 1) % methods.length;
+      const nextMethod = methods[currentIndex];
+
+      // Update Image Source
+      imgRight.src = nextMethod.src;
+      
+      // Update Label
+      rightLabel.textContent = nextMethod.name;
+      rightLabel.style.color = nextMethod.color;
+
+      // Update Button Text
+      changeBtn.textContent = `Right: ${nextMethod.name}`;
     });
   });
 </script>
