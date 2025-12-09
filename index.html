@@ -195,6 +195,18 @@
   </div>
 </section>
 
+<section class="hero teaser">
+  <div class="container is-max-desktop">
+    <div class="hero-body" style="margin-top: -1rem;">
+      <img src="./static/images/teaser.jpg"/>
+      <h2 class="subtitle has-text-centered">
+        <span class="dnerf">MVP handles a wide range of input views, reconstructing diverse large-scale scenes within 0.1–2.0 seconds.</span>
+      </h2>
+
+    </div>
+  </div>
+</section>
+
 
 <section class="hero is-light is-small">
   <div class="hero-body">
@@ -320,7 +332,7 @@
         <div class="content has-text-justified">
           <p>
             <b>Use mouse to slide the handle left/right to compare the two methods.</b> <b>It might take a few seconds to load the videos.</b><br>            
-            <b>Please use the buttons on the right above each comparison to toggle between different baseline models.</b>            
+            <b>Please use the buttons on below each comparison videos to toggle between different baseline models.</b>            
           </p>
         </div>
 
@@ -356,9 +368,6 @@
           <div class="video-header-row">
             <h2 class="title is-5" style="margin-bottom: -0.5rem;">32-view reconstruction</h2>
             <!-- NEW: right-video switch button (outside video, upper right) -->
-            <button class="video-change-button" style="color:#fdfffb; margin-bottom: -2rem; margin-right: 2rem;">
-              Right: Long-LRM
-            </button>
           </div>
 
           <div class="video-slider-container" data-view="32">
@@ -387,14 +396,16 @@
               </button>
             </div>
           </div>
+          <div style="text-align: center; margin-top: -1.5rem;">
+            <button class="video-change-button" style="color:#fdfffb;">
+              Click to compare with iLRM!
+            </button>
+          </div>
         </div>
 
         <div class="content has-text-centered">
           <div class="video-header-row">
             <h2 class="title is-5" style="margin-bottom: -0.5rem;">128-view reconstruction</h2>
-            <button class="video-change-button" style="color:#fdfffb; margin-bottom: -2rem; margin-right: 2rem;">
-              Right: Long-LRM
-            </button>
           </div>
 
           <div class="video-slider-container" data-view="128">
@@ -419,8 +430,12 @@
               <button class="video-toggle-button">
                 <img class="toggle-icon" src="static/images/pause.png" alt="Pause" />
               </button>
-              
             </div>
+          </div>
+          <div style="text-align: center; margin-top: -1.5rem;">
+            <button class="video-change-button" style="color:#fdfffb;">
+              Click to compare with iLRM!
+            </button>
           </div>
         </div>     
 
@@ -428,9 +443,6 @@
           <div class="content has-text-centered">
             <div class="video-header-row">
               <h2 class="title is-5" style="margin-bottom: -0.5rem;">4-view error map results on RealEstate10K</h2>
-              <button class="video-change-button" id="img-toggle-btn" style="color:#fdfffb; margin-bottom: -2rem; margin-right: 2rem;">
-                Right: CLiFT
-              </button>
             </div>
 
             <div class="video-slider-container" style="max-width: 400px; margin: 2rem auto; height: auto">
@@ -450,6 +462,12 @@
                 </div>
               </div>
             </div>
+            <div style="text-align: center; margin-top: -1.5rem;">
+              <button class="video-change-button" id="img-toggle-btn" style="color:#fdfffb; margin-bottom: -2rem; margin-right: 2rem;">
+                Click to compare with <span style="color:#FCA55EFF;">iLRM</span>
+              </button>
+            </div>
+          </div>
         </div>
 
         <style>
@@ -501,17 +519,18 @@
               more than 192 input views.
             </p>
           </div>         
-          <div class="box m-5">
-            <div class="content has-text-centered">
-              <img src="static/images/inf_time_graph.png" alt="re10k" style="max-height: 400px; width: auto;" />
+          <div class="container is-max-desktop">
+            <div class="hero-body" style="margin-top: -3rem;">
+              <img src="./static/images/inf_time_graph.png"/>
             </div>
           </div>         
         </div>
       </div>
     </div>
-
   </div>
 </section>
+
+  
 
 <section class="section" id="BibTeX">
   <div class="container is-max-desktop content" style="margin-top: -2rem;">
@@ -654,17 +673,19 @@
       const rightVideos = [
         {
           key: "llrm",
-          toggle_label: "Long-LRM",
+          toggle_label: "iLRM",
           label32:  "Long-LRM (0.84s)",
           label128: "Long-LRM (6.39s)",
-          color: "#3f5bc1", // blue-ish
+          color: "#7E98F7FF", // blue-ish #3f5bc1
+          change_color: "#FCA55EFF",
         },
         {
-          key: "ilrm",
-          toggle_label: "iLRM",
+          key: "Long-LRM",
+          toggle_label: "Long-LRM",
           label32:  "iLRM (0.53s)",
           label128: "iLRM (5.61s)",
-          color: "#d4782d", // orange-ish
+          color: "#FCA55EFF", // orange-ish #d4782d
+          change_color: "#7E98F7FF",
         },
       ];
 
@@ -720,7 +741,7 @@
           rightLabel.style.color = info.color;
         }
         if (changeBtn) {
-          changeBtn.textContent = `Right: ${info.toggle_label}`;
+          changeBtn.innerHTML = `Click to compare with <span style="color: ${info.change_color}">${info.toggle_label}</span>`;
         }
       }
 
@@ -851,13 +872,17 @@
     const methods = [
       {
         name: "CLiFT",
+        changewith: "iLRM",
         src: "static/images/clift.png",
-        color: "#3f5bc1" // Blue-ish
+        color: "#7E98F7FF", // Blue-ish
+        change_color: "#FCA55EFF"
       },
       {
         name: "iLRM",
+        changewith: "CLiFT",
         src: "static/images/ilrm.png",
-        color: "#d4782d" // Orange-ish
+        color: "#FCA55EFF", // Orange-ish
+        change_color: "#7E98F7FF"
       }
     ];
 
@@ -876,7 +901,7 @@
       rightLabel.style.color = nextMethod.color;
 
       // Update Button Text
-      changeBtn.textContent = `Right: ${nextMethod.name}`;
+      changeBtn.innerHTML = `Click to compare with <span style="color: ${nextMethod.change_color}">${nextMethod.changewith}</span>`;
     });
   });
 </script>
