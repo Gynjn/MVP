@@ -1,8 +1,8 @@
 <div align="center">
 <h1><span style="color:#93cf6a;">M</span>ulti-<span style="color:#93cf6a;">v</span>iew <span style="color:#93cf6a;">P</span>yramid Transformer: Look Coarser to See Broader</h1>
 
-<a href="https://arxiv.org/abs/2507.23277"><img src="https://img.shields.io/badge/arXiv-2507.23277-b31b1b" alt="arXiv"></a>
-<a href="https://gynjn.github.io/iLRM/"><img src="https://img.shields.io/badge/Project_Page-green" alt="Project Page"></a>
+<a href="https://arxiv.org/abs/2512.07806"><img src="https://img.shields.io/badge/arXiv-2512.07806-b31b1b" alt="arXiv"></a>
+<a href="https://gynjn.github.io/MVP/"><img src="https://img.shields.io/badge/Project_Page-green" alt="Project Page"></a>
 
 [Gyeongjin Kang](https://gynjn.github.io/info/), [Seungkwon Yang](https://github.com/yang-gwon2), [Seungtae Nam](https://github.com/stnamjef), [Younggeun Lee](https://github.com/Younggeun-L), [Jungwoo Kim](https://github.com/jungcow), [Eunbyung Park](https://silverbottlep.github.io/index.html)
 </div>
