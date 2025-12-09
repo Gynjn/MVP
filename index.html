@@ -416,6 +416,21 @@
       </div>
     </div>
 
+    <div class="columns is-centered">
+      <div class="column is-full-width">
+        <h2 class="title is-3">Inference Time Comparison</h2>   
+        <div class="content has-text-justified">
+          <p>
+            We compare the inference time as a function of the number of input views. We measure all timings at an input resolution of 960x540 on a H100 GPU.
+            Note that the inference time only accounts for the generation of 3D Gaussians. For novel view rendering, Long-LRM encounters a memory error when using
+            more than 128 input views.
+          </p>
+        </div>         
+        <video poster="" id="time" muted height="100%" style="border-radius: 16px; overflow: hidden;" controls>
+          <source src="./static/videos/time_graphs.mp4" type="video/mp4">
+        </video>            
+      </div>
+    </div>
 
   </div>
 </section>
