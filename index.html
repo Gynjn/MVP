@@ -213,37 +213,37 @@
       <div id="results-carousel" class="carousel results-carousel" data-slides-to-show="2">
         <div class="item item-140">
           <video poster="" id="140" autoplay controls muted loop playsinline height="100%">
-            <source src="./static/videos/256_teaser/colors.mp4"
+            <source src="./static/videos/256_teaser/colors_.mp4"
                     type="video/mp4">
           </video>
         </div>
         <div class="item item-135">
           <video poster="" id="135" autoplay controls muted loop playsinline height="100%">
-            <source src="./static/videos/256_teaser/museum.mp4"
+            <source src="./static/videos/256_teaser/museum_.mp4"
                     type="video/mp4">
           </video>
         </div>
         <div class="item item-tree">
           <video poster="" id="tree" autoplay controls muted loop playsinline height="100%" preload="none">
-            <source src="./static/videos/256_teaser/chairs.mp4"
+            <source src="./static/videos/256_teaser/chairs_.mp4"
                     type="video/mp4">
           </video>
         </div>
         <div class="item item-redcar">
           <video poster="" id="redcar" autoplay controls muted loop playsinline height="100%" preload="none">
-            <source src="./static/videos/256_teaser/pillars.mp4"
+            <source src="./static/videos/256_teaser/pillars_.mp4"
                     type="video/mp4">
           </video>
         </div>
         <div class="item item-ff">
           <video poster="" id="ff" autoplay controls muted loop playsinline height="100%" preload="none">
-            <source src="./static/videos/256_teaser/dino.mp4"
+            <source src="./static/videos/256_teaser/dino_.mp4"
                     type="video/mp4">
           </video>
         </div>
         <div class="item item-clothes">
           <video poster="" id="clothes" autoplay controls muted loop playsinline height="100%" preload="none">
-            <source src="./static/videos/256_teaser/pond_trees.mp4"
+            <source src="./static/videos/256_teaser/pond_trees_.mp4"
                     type="video/mp4">
           </video>
         </div>        
@@ -261,37 +261,37 @@
       <div id="results-carousel" class="carousel results-carousel" data-slides-to-show="2">
         <div class="item item-140">
           <video poster="" id="140" autoplay controls muted loop playsinline height="100%">
-            <source src="./static/videos/32_teaser/140.mp4"
+            <source src="./static/videos/32_teaser/140_.mp4"
                     type="video/mp4">
           </video>
         </div>
         <div class="item item-135">
           <video poster="" id="135" autoplay controls muted loop playsinline height="100%">
-            <source src="./static/videos/32_teaser/135.mp4"
+            <source src="./static/videos/32_teaser/135_.mp4"
                     type="video/mp4">
           </video>
         </div>
         <div class="item item-tree">
           <video poster="" id="tree" autoplay controls muted loop playsinline height="100%" preload="none">
-            <source src="./static/videos/32_teaser/tree.mp4"
+            <source src="./static/videos/32_teaser/tree_.mp4"
                     type="video/mp4">
           </video>
         </div>
         <div class="item item-redcar">
           <video poster="" id="redcar" autoplay controls muted loop playsinline height="100%" preload="none">
-            <source src="./static/videos/32_teaser/redcar.mp4"
+            <source src="./static/videos/32_teaser/redcar_.mp4"
                     type="video/mp4">
           </video>
         </div>
         <div class="item item-ff">
           <video poster="" id="ff" autoplay controls muted loop playsinline height="100%" preload="none">
-            <source src="./static/videos/32_teaser/ff.mp4"
+            <source src="./static/videos/32_teaser/ff_.mp4"
                     type="video/mp4">
           </video>
         </div>
         <div class="item item-clothes">
           <video poster="" id="clothes" autoplay controls muted loop playsinline height="100%" preload="none">
-            <source src="./static/videos/32_teaser/clothes.mp4"
+            <source src="./static/videos/32_teaser/clothes_.mp4"
                     type="video/mp4">
           </video>
         </div>        
@@ -419,11 +419,11 @@
 
           <div class="video-slider-container" data-view="32">
             <div class="video-slider-wrapper js-video-slider">
-              <video class="video-left" autoplay muted loop playsinline>
-                <source src="static/videos/32_comp/32mvp.mp4" type="video/mp4">
+              <video preload="metadata" class="video-left" autoplay muted loop playsinline disablepictureinpicture disableremoteplayback>
+                <source src="static/videos/32_comp/32mvp_.mp4" type="video/mp4">
               </video>
-              <video class="video-right" autoplay muted loop playsinline>
-                <source src="static/videos/32_comp/32llim.mp4" type="video/mp4">
+              <video preload="metadata" class="video-right" autoplay muted loop playsinline disablepictureinpicture disableremoteplayback>
+                <source src="static/videos/32_comp/32llrm_.mp4" type="video/mp4">
               </video>
 
               <!-- slider bar + handle -->
@@ -457,11 +457,11 @@
 
           <div class="video-slider-container" data-view="128">
             <div class="video-slider-wrapper js-video-slider">
-              <video class="video-left" autoplay muted loop playsinline>
-                <source src="static/videos/128_comp/128mvp.mp4" type="video/mp4">
+              <video preload="metadata" class="video-left" autoplay muted loop playsinline disablepictureinpicture disableremoteplayback>
+                <source src="static/videos/128_comp/128mvp_.mp4" type="video/mp4">
               </video>
-              <video class="video-right" autoplay muted loop playsinline>
-                <source src="static/videos/128_comp/128llim.mp4" type="video/mp4">
+              <video preload="metadata" class="video-right" autoplay muted loop playsinline disablepictureinpicture disableremoteplayback>
+                <source src="static/videos/128_comp/128llrm_.mp4" type="video/mp4">
               </video>
 
               <div class="slider-bar"></div>
@@ -620,189 +620,182 @@
 </footer>
 
 <script>
-  window.addEventListener("DOMContentLoaded", () => {
-    // loop over each slider block
-    document.querySelectorAll(".video-slider-container").forEach((container) => {
-      const wrapper      = container.querySelector(".js-video-slider");
-      if (!wrapper) return;
-      const sliderBar    = wrapper.querySelector(".slider-bar");
-      const sliderHandle = wrapper.querySelector(".slider-handle");
-      const videoLeft    = wrapper.querySelector(".video-left");
-      const videoRight   = wrapper.querySelector(".video-right");
-      const toggleBtn    = wrapper.querySelector(".video-toggle-button");
-      const icon         = wrapper.querySelector(".toggle-icon");
+window.addEventListener("DOMContentLoaded", () => {
+  document.querySelectorAll(".video-slider-container").forEach((container) => {
+    const wrapper      = container.querySelector(".js-video-slider");
+    if (!wrapper) return;
 
-      // button is now outside the video, in the same .content as the container
-      const changeBtn    = container.parentElement.querySelector(".video-change-button");
-      const rightLabel   = wrapper.querySelector(".video-label-right span");
+    const sliderBar    = wrapper.querySelector(".slider-bar");
+    const sliderHandle = wrapper.querySelector(".slider-handle");
+    const videoLeft    = wrapper.querySelector(".video-left");
+    const videoRight   = wrapper.querySelector(".video-right");
+    const toggleBtn    = wrapper.querySelector(".video-toggle-button");
+    const icon         = wrapper.querySelector(".toggle-icon");
 
-      const baseView = container.dataset.view || "32";
+    const changeBtn    = container.parentElement.querySelector(".video-change-button");
+    const rightLabel   = wrapper.querySelector(".video-label-right span");
+    const baseView     = container.dataset.view || "32";
 
-      // --- slider center ---
-      const setCenter = () => {
-        videoRight.style.clipPath = "inset(0 0 0 50%)";
-        sliderBar.style.left      = "50%";
-        sliderHandle.style.left   = "50%";
-      };
-      setCenter();
+    /* =======================================================
+                1) GPU-safe, throttled reveal slider
+       ======================================================= */
+    const setCenter = () => {
+      sliderBar.style.left = "50%";
+      sliderHandle.style.left = "50%";
+      videoRight.style.clipPath = "inset(0 0 0 50%)";
+    };
+    setCenter();
 
-      // --- mousemove slider ---
-      wrapper.addEventListener("mousemove", (e) => {
-        const bounds  = wrapper.getBoundingClientRect();
-        const offsetX = e.clientX - bounds.left;
-        const percent = offsetX / bounds.width;
-        const clipPercent = Math.min(100, Math.max(0, percent * 100));
-
-        videoRight.style.clipPath = `inset(0 0 0 ${clipPercent}%)`;
-        sliderBar.style.left      = `${clipPercent}%`;
-        sliderHandle.style.left   = `${clipPercent}%`;
+    let rafId = null;
+    wrapper.addEventListener("mousemove", (e) => {
+      if (rafId) cancelAnimationFrame(rafId);
+      rafId = requestAnimationFrame(() => {
+        const rect = wrapper.getBoundingClientRect();
+        const percent = Math.min(100, Math.max(0, ((e.clientX - rect.left) / rect.width) * 100));
+        const p = percent + "%";
+        videoRight.style.clipPath = `inset(0 0 0 ${p})`;
+        sliderBar.style.left = p;
+        sliderHandle.style.left = p;
       });
-
-      wrapper.addEventListener("mouseleave", () => {
-        setCenter();
-      });
-
-      let isPlaying = true;
-
-      // ==========================
-      // Soft continuous sync (left is master, right follows)
-      // ==========================
-      let isSoftSyncing   = false;
-      const SYNC_INTERVAL = 100;   // ms
-      const SYNC_THRESHOLD = 0.03; // seconds (~30ms)
-
-      function startSoftSync() {
-        if (isSoftSyncing) return;
-        isSoftSyncing = true;
-
-        const syncLoop = () => {
-          if (!isSoftSyncing || videoLeft.paused) {
-            isSoftSyncing = false;
-            return;
-          }
-
-          const diff = videoLeft.currentTime - videoRight.currentTime;
-          if (Math.abs(diff) > SYNC_THRESHOLD) {
-            videoRight.currentTime = videoLeft.currentTime;
-          }
-
-          setTimeout(syncLoop, SYNC_INTERVAL);
-        };
-
-        syncLoop();
-      }
-
-      function stopSoftSync() {
-        isSoftSyncing = false;
-      }
-
-      // --- play / pause button ---
-      toggleBtn.addEventListener("click", () => {
-        if (isPlaying) {
-          videoLeft.pause();
-          videoRight.pause();
-          stopSoftSync();
-          icon.src = "static/images/play.png";
-          icon.alt = "Play";
-        } else {
-          videoLeft.play();
-          videoRight.play();
-          startSoftSync();
-          icon.src = "static/images/pause.png";
-          icon.alt = "Pause";
-        }
-        isPlaying = !isPlaying;
-      });
-
-      // ==========================
-      // right-video switching (Long-LRM / iLRM)
-      // ==========================
-      const rightVideos = [
-        {
-          key: "llrm",
-          toggle_label: "iLRM",
-          label32:  "Long-LRM (0.84s)",
-          label128: "Long-LRM (6.39s)",
-          color: "#7E98F7FF", // blue-ish #3f5bc1
-          change_color: "#FCA55EFF",
-        },
-        {
-          key: "ilrm",
-          toggle_label: "Long-LRM",
-          label32:  "iLRM (0.53s)",
-          label128: "iLRM (5.61s)",
-          color: "#FCA55EFF", // orange-ish #d4782d
-          change_color: "#7E98F7FF",
-        },
-      ];
-
-      let currentRightIndex = 0;  // start with Long-LRM
-
-      function setRightVideo(idx) {
-        const info = rightVideos[idx];
-        currentRightIndex = idx;
-
-        const syncTime   = videoLeft.currentTime || 0;
-        const wasPlaying = !videoLeft.paused && isPlaying;
-
-        const srcPath = `static/videos/${baseView}_comp/${baseView}${info.key}.mp4`;          
-
-        // pause right before changing source
-        videoRight.pause();
-
-        const source = videoRight.querySelector("source");
-        if (!source) return;
-        source.src = srcPath;
-        videoRight.load();
-
-        // wait until browser can decode frames
-        function onCanPlay() {
-          videoRight.removeEventListener("canplay", onCanPlay);
-
-          let targetTime = syncTime;
-          if (!isNaN(videoRight.duration) && videoRight.duration > 0) {
-            targetTime = Math.min(syncTime, videoRight.duration);
-          }
-
-          function onSeeked() {
-            videoRight.removeEventListener("seeked", onSeeked);
-            if (wasPlaying) {
-              videoRight.play();
-            }
-          }
-
-          videoRight.addEventListener("seeked", onSeeked);
-          videoRight.currentTime = targetTime;
-        }
-
-        videoRight.addEventListener("canplay", onCanPlay);
-
-        const labelText =
-          baseView === "128"
-            ? (info.label128 || info.toggle_label)
-            : (info.label32  || info.toggle_label);
-
-        // update UI texts
-        if (rightLabel) {
-          rightLabel.textContent = labelText;
-          rightLabel.style.color = info.color;
-        }
-        if (changeBtn) {
-          changeBtn.innerHTML = `Click to compare with <span style="color: ${info.change_color}">${info.toggle_label}</span>`;
-        }
-      }
-
-      // init + click handler
-      if (changeBtn) {
-        setRightVideo(currentRightIndex);
-
-        changeBtn.addEventListener("click", () => {
-          const next = (currentRightIndex + 1) % rightVideos.length;
-          setRightVideo(next);
-        });
-      }
     });
+
+    wrapper.addEventListener("mouseleave", setCenter);
+
+    /* =======================================================
+              2) Frame-accurate sync (Left → Right)
+           → No setTimeout, no 30ms snapping judder
+       ======================================================= */
+    let syncing = false;
+
+    function softSyncLoop(ts, metadata) {
+      if (!syncing || videoLeft.paused) return;
+      const d = videoLeft.currentTime - videoRight.currentTime;
+      // Only nudge when drift exceeds 1 frame (≈16ms)
+      if (Math.abs(d) > 0.016) {
+        videoRight.currentTime = videoLeft.currentTime;
+      }
+      videoLeft.requestVideoFrameCallback(softSyncLoop);
+    }
+
+    function startSync() {
+      if (syncing) return;
+      syncing = true;
+      videoLeft.requestVideoFrameCallback(softSyncLoop);
+    }
+
+    function stopSync() {
+      syncing = false;
+    }
+
+    /* =======================================================
+                3) Unified play/pause (zero desync)
+       ======================================================= */
+    let isPlaying = true;
+
+    toggleBtn.addEventListener("click", () => {
+      if (isPlaying) {
+        videoLeft.pause();
+        videoRight.pause();
+        stopSync();
+        icon.src = "static/images/play.png";
+        icon.alt = "Play";
+      } else {
+        videoLeft.play();
+        videoRight.play();
+        startSync();
+        icon.src = "static/images/pause.png";
+        icon.alt = "Pause";
+      }
+      isPlaying = !isPlaying;
+    });
+
+    /* =======================================================
+      4) Lazy video switching with burst pre-buffering
+         → prevents black stalls + long seek delay
+       ======================================================= */
+
+    const rightVideos = [
+      {
+        key: "llrm",
+        toggle_label: "iLRM",
+        label32:  "Long-LRM (0.84s)",
+        label128: "Long-LRM (6.39s)",
+        color: "#7E98F7FF",
+        change_color: "#FCA55EFF",
+      },
+      {
+        key: "ilrm",
+        toggle_label: "Long-LRM",
+        label32:  "iLRM (0.53s)",
+        label128: "iLRM (5.61s)",
+        color: "#FCA55EFF",
+        change_color: "#7E98F7FF",
+      },
+    ];
+
+    let currentRightIndex = 0;
+
+    // GPU-friendly preload ramp
+    function softPreload(src) {
+      const v = document.createElement("video");
+      v.preload = "metadata";
+      v.src = src;
+      v.muted = true;
+      // Browser drops ref automatically after decode warmup
+      setTimeout(() => v.remove(), 4000);
+    }
+
+    function setRightVideo(idx) {
+      const info = rightVideos[idx];
+      currentRightIndex = idx;
+
+      const syncTime   = videoLeft.currentTime || 0;
+      const wasPlay    = !videoLeft.paused && isPlaying;
+      const srcPath    = `static/videos/${baseView}_comp/${baseView}${info.key}_.mp4`;          
+
+      // Prepare decode BEFORE switch to avoid blank stall
+      softPreload(srcPath);
+
+      const source = videoRight.querySelector("source");
+      if (!source) return;
+      videoRight.pause();
+      source.src = srcPath;
+      videoRight.load();
+
+      function onCanPlay() {
+        videoRight.removeEventListener("canplay", onCanPlay);
+
+        const t = Math.min(syncTime, videoRight.duration || syncTime);
+
+        function onSeeked() {
+          videoRight.removeEventListener("seeked", onSeeked);
+          if (wasPlay) {
+            videoRight.play();
+            startSync();
+          }
+        }
+        videoRight.addEventListener("seeked", onSeeked);
+        videoRight.currentTime = t;
+      }
+      videoRight.addEventListener("canplay", onCanPlay);
+
+      // UI update
+      const label = baseView === "128" ? info.label128 : info.label32;
+      if (rightLabel) rightLabel.textContent = label;
+      if (rightLabel) rightLabel.style.color = info.color;
+      if (changeBtn) changeBtn.innerHTML = `Click to compare with <span style="color: ${info.change_color}">${info.toggle_label}</span>`;
+    }
+
+    /* init + swap bind */
+    if (changeBtn) {
+      setRightVideo(currentRightIndex);
+      changeBtn.addEventListener("click", () => {
+        const next = (currentRightIndex + 1) % rightVideos.length;
+        setRightVideo(next);
+      });
+    }
   });
+});
 </script>
 
 <!-- <script>
