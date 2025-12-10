@@ -144,6 +144,14 @@
 <section class="hero teaser">
   <div class="container is-max-desktop">
       <div class="video">
+        <div id="teaser-loader" class="video-loader">
+            <div class="loader-content">
+              <span class="icon">
+                <i class="fas fa-spinner fa-pulse"></i>
+              </span>
+              <span>Loading...</span>
+            </div>
+          </div>
         <div class="hero-body" style="margin-top: 1rem;">
           <video poseter="" id="teaser" autoplay muted loop playsinline height="100%" style="border-radius: 16px; overflow: hidden;">
             <source src="./static/videos/main_teaser.mp4" type="video/mp4">
@@ -745,19 +753,32 @@ window.addEventListener("DOMContentLoaded", () => {
       setTimeout(() => v.remove(), 4000);
     }
 
-    function setRightVideo(idx) {
+    /* =======================================================
+      Updated setRightVideo with Initialization Flag
+       ======================================================= */
+    
+    // 1. Add 'isInit' parameter defaulting to false
+    function setRightVideo(idx, isInit = false) {
       const info = rightVideos[idx];
       currentRightIndex = idx;
 
       const syncTime   = videoLeft.currentTime || 0;
-      const wasPlay    = !videoLeft.paused && isPlaying;
+      
+      // LOGIC CHANGE:
+      // If it is the Initial load (isInit === true), we assume the Left video 
+      // is INTENDED to be playing (Autoplay), so we treat it as active.
+      // Otherwise, we strictly check the actual playback state of the left video.
+      const leftIsActive = isInit ? true : !videoLeft.paused;
+      
+      const shouldPlay = leftIsActive && isPlaying; 
+
       const srcPath    = `static/videos/${baseView}_comp/${baseView}${info.key}_.mp4`;          
 
-      // Prepare decode BEFORE switch to avoid blank stall
       softPreload(srcPath);
 
       const source = videoRight.querySelector("source");
       if (!source) return;
+      
       videoRight.pause();
       source.src = srcPath;
       videoRight.load();
@@ -769,9 +790,14 @@ window.addEventListener("DOMContentLoaded", () => {
 
         function onSeeked() {
           videoRight.removeEventListener("seeked", onSeeked);
-          if (wasPlay) {
-            videoRight.play();
+          
+          if (shouldPlay) {
+            // Add catch to prevent console errors if browser blocks autoplay
+            videoRight.play().catch(() => {}); 
             startSync();
+          } else {
+            videoRight.pause();
+            stopSync(); 
           }
         }
         videoRight.addEventListener("seeked", onSeeked);
@@ -786,12 +812,17 @@ window.addEventListener("DOMContentLoaded", () => {
       if (changeBtn) changeBtn.innerHTML = `Click to compare with <span style="color: ${info.change_color}">${info.toggle_label}</span>`;
     }
 
-    /* init + swap bind */
+    /* =======================================================
+      Initialization Block
+       ======================================================= */
     if (changeBtn) {
-      setRightVideo(currentRightIndex);
+      // 2. Pass 'true' here to force autoplay logic on page load
+      setRightVideo(currentRightIndex, true);
+      
       changeBtn.addEventListener("click", () => {
         const next = (currentRightIndex + 1) % rightVideos.length;
-        setRightVideo(next);
+        // Normal clicks pass 'false' (default), respecting pause state
+        setRightVideo(next); 
       });
     }
   });
