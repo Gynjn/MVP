@@ -637,45 +637,66 @@ window.addEventListener("DOMContentLoaded", () => {
     if (!wrapper) return;
 
     const videoLeft = wrapper.querySelector(".video-left");
-    const videoRight = wrapper.querySelector(".video-right"); 
+    const rightContainer = wrapper.querySelector(".video-right");
     
-    // Restore access to your original styled slider elements
+    // UI Elements
     const sliderBar    = wrapper.querySelector(".slider-bar");
     const sliderHandle = wrapper.querySelector(".slider-handle");
+    const toggleBtn    = wrapper.querySelector(".video-toggle-button");
+    const icon         = wrapper.querySelector(".toggle-icon");
+    const changeBtn    = container.parentElement.querySelector(".video-change-button");
+    const rightLabel   = wrapper.querySelector(".video-label-right span");
+    const baseView     = container.dataset.view || "32";
 
-    // Create or select the canvas
+    // Setup Canvas
     let canvas = wrapper.querySelector("canvas");
     if (!canvas) {
         canvas = document.createElement("canvas");
         canvas.style.width = "100%";
         canvas.style.height = "100%";
         canvas.style.display = "block";
-        // Insert canvas
         wrapper.appendChild(canvas);
         
-        // Hide original video elements (we draw them on canvas now)
         videoLeft.style.display = "none";
-        videoRight.style.display = "none";
+        rightContainer.style.display = "none"; 
         
-        // ensure canvas is behind the slider elements
         if(sliderBar) sliderBar.style.zIndex = "10";
         if(sliderHandle) sliderHandle.style.zIndex = "11";
     }
-    
     const context = canvas.getContext("2d");
-    const toggleBtn = wrapper.querySelector(".video-toggle-button");
-    const icon = wrapper.querySelector(".toggle-icon");
-    const changeBtn = container.parentElement.querySelector(".video-change-button");
-    const rightLabel = wrapper.querySelector(".video-label-right span");
-    const baseView = container.dataset.view || "32";
+
+    // DATA CONFIG
+    const rightVideoConfig = [
+        { key: "llrm", toggle_label: "iLRM", label32: "Long-LRM", label128: "Long-LRM", color: "#7E98F7FF", change_color: "#FCA55EFF" },
+        { key: "ilrm", toggle_label: "Long-LRM", label32: "iLRM", label128: "iLRM", color: "#FCA55EFF", change_color: "#7E98F7FF" },
+    ];
+
+    // 2. PARALLEL VIDEO LOADING
+    const loadedRightVideos = rightVideoConfig.map((config) => {
+        const v = document.createElement("video");
+        v.muted = true;
+        v.loop = true;
+        v.playsInline = true;
+        v.preload = "auto";
+        v.src = `static/videos/${baseView}_comp/${baseView}${config.key}_.mp4`;
+        v.style.display = "none"; 
+        rightContainer.appendChild(v);
+        return v;
+    });
 
     // State
+    let currentRightIndex = 0;
+    
+    // "Latch" variable: Stores the video currently being drawn.
+    // We only update this when the new target is truly ready.
+    let activeRenderVideo = loadedRightVideos[0]; 
+
     let position = 0.5;
     let isPlaying = true; 
     let animationId = null;
 
     /* =======================================================
-       1) Canvas Drawing Loop (Video Only)
+       3) Smart Canvas Drawing Loop (The Fix)
        ======================================================= */
     
     function resizeCanvas() {
@@ -686,23 +707,39 @@ window.addEventListener("DOMContentLoaded", () => {
     }
 
     function drawLoop() {
-        if (!videoLeft || !videoRight) return;
+        if (!videoLeft) return;
 
         resizeCanvas();
         const w = canvas.width;
         const h = canvas.height;
 
-        // Draw Left Video (Base)
+        // 1. Draw Left Video
         context.drawImage(videoLeft, 0, 0, w, h);
 
-        // Draw Right Video (Clipped)
-        const splitX = w * position;
-        if (videoRight.readyState >= 2) {
-            context.drawImage(videoRight, splitX, 0, w - splitX, h, splitX, 0, w - splitX, h);
+        // 2. Determine Right Video Source
+        const targetVideo = loadedRightVideos[currentRightIndex];
+
+        // LATCH LOGIC:
+        // We only switch the visual source if the target video is NOT seeking
+        // and has enough data to render a frame.
+        // If it's still loading the seek, we keep drawing the old video ('activeRenderVideo')
+        // to prevent black flashes or jitter.
+        const isReady = targetVideo.readyState >= 2 && !targetVideo.seeking;
+        
+        if (isReady) {
+            activeRenderVideo = targetVideo;
         }
 
-        // UPDATE UI: Move the HTML slider elements to match the splitX
-        // We use percentages because your CSS likely expects that
+        // 3. Draw the Right Video
+        const splitX = w * position;
+        const drawW = w - splitX;
+
+        // Ensure we actually have something to draw
+        if (activeRenderVideo.readyState >= 2) {
+            context.drawImage(activeRenderVideo, splitX, 0, drawW, h, splitX, 0, drawW, h);
+        }
+
+        // Update UI
         const pct = position * 100 + "%";
         if (sliderBar) sliderBar.style.left = pct;
         if (sliderHandle) sliderHandle.style.left = pct;
@@ -711,36 +748,38 @@ window.addEventListener("DOMContentLoaded", () => {
     }
 
     /* =======================================================
-       2) Interaction
+       4) Interaction
        ======================================================= */
-    
     function updatePos(clientX) {
         const rect = canvas.getBoundingClientRect();
         position = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
     }
-
     wrapper.addEventListener("mousemove", (e) => updatePos(e.clientX));
     wrapper.addEventListener("touchstart", (e) => updatePos(e.touches[0].clientX));
     wrapper.addEventListener("touchmove", (e) => {
         updatePos(e.touches[0].clientX);
         e.preventDefault();
     });
-    
-    // Start loop
     animationId = requestAnimationFrame(drawLoop);
 
     /* =======================================================
-       3) Sync & Toggle Logic
+       5) Multi-Video Sync Logic
        ======================================================= */
-    
     let syncing = false;
 
     function softSyncLoop() {
         if (!syncing || videoLeft.paused) return;
-        const d = videoLeft.currentTime - videoRight.currentTime;
-        if (Math.abs(d) > 0.02) { 
-            videoRight.currentTime = videoLeft.currentTime;
-        }
+        
+        const masterTime = videoLeft.currentTime;
+
+        // Keep all hidden videos warm and synced
+        loadedRightVideos.forEach(v => {
+            const d = masterTime - v.currentTime;
+            if (Math.abs(d) > 0.05) { 
+                v.currentTime = masterTime;
+            }
+        });
+
         videoLeft.requestVideoFrameCallback(softSyncLoop);
     }
 
@@ -751,94 +790,81 @@ window.addEventListener("DOMContentLoaded", () => {
     }
     function stopSync() { syncing = false; }
 
-    toggleBtn.addEventListener("click", () => {
-        if (isPlaying) {
-            videoLeft.pause();
-            videoRight.pause();
-            stopSync();
-            icon.src = "static/images/play.png";
-            icon.alt = "Play";
-        } else {
+    /* =======================================================
+       6) Controls (Play/Pause)
+       ======================================================= */
+
+    function setAllPlayState(play) {
+        if (play) {
             videoLeft.play();
-            videoRight.play();
+            loadedRightVideos.forEach(v => v.play().catch(()=>{}));
             startSync();
             icon.src = "static/images/pause.png";
             icon.alt = "Pause";
+        } else {
+            videoLeft.pause();
+            // Force precise sync on pause
+            const finalTime = videoLeft.currentTime;
+            loadedRightVideos.forEach(v => {
+                v.pause();
+                v.currentTime = finalTime;
+            });
+            stopSync();
+            icon.src = "static/images/play.png";
+            icon.alt = "Play";
         }
+    }
+
+    toggleBtn.addEventListener("click", () => {
         isPlaying = !isPlaying;
+        setAllPlayState(isPlaying);
     });
 
     /* =======================================================
-       4) Dynamic Video Switching
+       7) INSTANT SWITCH LOGIC (Simplified)
        ======================================================= */
-    const rightVideos = [
-        { key: "llrm", toggle_label: "iLRM", label32: "Long-LRM", label128: "Long-LRM", color: "#7E98F7FF", change_color: "#FCA55EFF" },
-        { key: "ilrm", toggle_label: "Long-LRM", label32: "iLRM", label128: "iLRM", color: "#FCA55EFF", change_color: "#7E98F7FF" },
-    ];
-    let currentRightIndex = 0;
+    if (changeBtn) {
+        updateLabels(0);
 
-    function setRightVideo(idx, isInit = false) {
-        const info = rightVideos[idx];
-        currentRightIndex = idx;
-        const syncTime = videoLeft.currentTime || 0;
-        
-        const shouldPlay = isInit ? true : isPlaying;
+        changeBtn.addEventListener("click", () => {
+            // 1. Change Logic Immediately
+            currentRightIndex = (currentRightIndex + 1) % loadedRightVideos.length;
+            
+            // 2. Sync Time Immediately
+            // (Even if paused, this sets the 'seeking' flag to true internally)
+            loadedRightVideos[currentRightIndex].currentTime = videoLeft.currentTime;
+            
+            // 3. Update Text Immediately
+            updateLabels(currentRightIndex);
+            
+            // Note: We don't wait for the video to be ready. 
+            // The drawLoop handles that by showing the OLD video 
+            // until the NEW one reports !seeking.
+        });
+    }
 
-        const srcPath = `static/videos/${baseView}_comp/${baseView}${info.key}_.mp4`;          
-
-        const source = videoRight.querySelector("source") || videoRight;
-        videoRight.pause();
-        source.src = srcPath;
-        videoRight.load();
-
-        function onCanPlay() {
-            videoRight.removeEventListener("canplay", onCanPlay);
-            videoRight.currentTime = syncTime;
-
-            function onSeeked() {
-                videoRight.removeEventListener("seeked", onSeeked);
-                if (shouldPlay) {
-                    videoRight.play().catch(()=>{});
-                    startSync();
-                } else {
-                    videoRight.pause();
-                    stopSync();
-                }
-            }
-            videoRight.addEventListener("seeked", onSeeked);
-        }
-        videoRight.addEventListener("canplay", onCanPlay);
-
+    function updateLabels(idx) {
+        const info = rightVideoConfig[idx];
         if (rightLabel) {
             rightLabel.textContent = baseView === "128" ? info.label128 : info.label32;
             rightLabel.style.color = info.color;
         }
-        if (changeBtn) changeBtn.innerHTML = `Click to compare with <span style="color: ${info.change_color}">${info.toggle_label}</span>`;
+        if (changeBtn) {
+            changeBtn.innerHTML = `Click to compare with <span style="color: ${info.change_color}">${info.toggle_label}</span>`;
+        }
     }
 
     /* =======================================================
-       5) Initialization
+       8) Initialization
        ======================================================= */
-    if (changeBtn) {
-        // 1. Force Left Video to Play
-        videoLeft.muted = true; 
-        const playPromise = videoLeft.play();
-        
-        if (playPromise !== undefined) {
-            playPromise.then(() => {
-                startSync();
-            }).catch(error => {
-                console.warn("Autoplay blocked:", error);
-                isPlaying = false;
-                icon.src = "static/images/play.png";
-            });
-        }
-
-        // 2. Initialize Right Video
-        setRightVideo(currentRightIndex, true);
-        
-        changeBtn.addEventListener("click", () => {
-            setRightVideo((currentRightIndex + 1) % rightVideos.length);
+    videoLeft.muted = true;
+    const p = videoLeft.play();
+    if (p !== undefined) {
+        p.then(() => {
+            setAllPlayState(true);
+        }).catch(() => {
+            isPlaying = false;
+            setAllPlayState(false);
         });
     }
   });
