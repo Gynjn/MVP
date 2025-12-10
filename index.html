@@ -36,6 +36,8 @@
   <script src="./static/js/bulma-carousel.min.js"></script>
   <script src="./static/js/bulma-slider.min.js"></script>
   <script src="./static/js/index.js"></script>
+  <script src="./static/script.js" type="text/javascript"></script>
+
 </head>
 <body>
 
@@ -630,200 +632,214 @@
 <script>
 window.addEventListener("DOMContentLoaded", () => {
   document.querySelectorAll(".video-slider-container").forEach((container) => {
-    const wrapper      = container.querySelector(".js-video-slider");
+    // 1. Setup Elements
+    const wrapper = container.querySelector(".js-video-slider");
     if (!wrapper) return;
 
+    const videoLeft = wrapper.querySelector(".video-left");
+    const videoRight = wrapper.querySelector(".video-right"); 
+    
+    // Restore access to your original styled slider elements
     const sliderBar    = wrapper.querySelector(".slider-bar");
     const sliderHandle = wrapper.querySelector(".slider-handle");
-    const videoLeft    = wrapper.querySelector(".video-left");
-    const videoRight   = wrapper.querySelector(".video-right");
-    const toggleBtn    = wrapper.querySelector(".video-toggle-button");
-    const icon         = wrapper.querySelector(".toggle-icon");
 
-    const changeBtn    = container.parentElement.querySelector(".video-change-button");
-    const rightLabel   = wrapper.querySelector(".video-label-right span");
-    const baseView     = container.dataset.view || "32";
+    // Create or select the canvas
+    let canvas = wrapper.querySelector("canvas");
+    if (!canvas) {
+        canvas = document.createElement("canvas");
+        canvas.style.width = "100%";
+        canvas.style.height = "100%";
+        canvas.style.display = "block";
+        // Insert canvas
+        wrapper.appendChild(canvas);
+        
+        // Hide original video elements (we draw them on canvas now)
+        videoLeft.style.display = "none";
+        videoRight.style.display = "none";
+        
+        // ensure canvas is behind the slider elements
+        if(sliderBar) sliderBar.style.zIndex = "10";
+        if(sliderHandle) sliderHandle.style.zIndex = "11";
+    }
+    
+    const context = canvas.getContext("2d");
+    const toggleBtn = wrapper.querySelector(".video-toggle-button");
+    const icon = wrapper.querySelector(".toggle-icon");
+    const changeBtn = container.parentElement.querySelector(".video-change-button");
+    const rightLabel = wrapper.querySelector(".video-label-right span");
+    const baseView = container.dataset.view || "32";
+
+    // State
+    let position = 0.5;
+    let isPlaying = true; 
+    let animationId = null;
 
     /* =======================================================
-                1) GPU-safe, throttled reveal slider
+       1) Canvas Drawing Loop (Video Only)
        ======================================================= */
-    const setCenter = () => {
-      sliderBar.style.left = "50%";
-      sliderHandle.style.left = "50%";
-      videoRight.style.clipPath = "inset(0 0 0 50%)";
-    };
-    setCenter();
+    
+    function resizeCanvas() {
+        if (videoLeft.videoWidth > 0 && canvas.width !== videoLeft.videoWidth) {
+            canvas.width = videoLeft.videoWidth;
+            canvas.height = videoLeft.videoHeight;
+        }
+    }
 
-    let rafId = null;
-    wrapper.addEventListener("mousemove", (e) => {
-      if (rafId) cancelAnimationFrame(rafId);
-      rafId = requestAnimationFrame(() => {
-        const rect = wrapper.getBoundingClientRect();
-        const percent = Math.min(100, Math.max(0, ((e.clientX - rect.left) / rect.width) * 100));
-        const p = percent + "%";
-        videoRight.style.clipPath = `inset(0 0 0 ${p})`;
-        sliderBar.style.left = p;
-        sliderHandle.style.left = p;
-      });
+    function drawLoop() {
+        if (!videoLeft || !videoRight) return;
+
+        resizeCanvas();
+        const w = canvas.width;
+        const h = canvas.height;
+
+        // Draw Left Video (Base)
+        context.drawImage(videoLeft, 0, 0, w, h);
+
+        // Draw Right Video (Clipped)
+        const splitX = w * position;
+        if (videoRight.readyState >= 2) {
+            context.drawImage(videoRight, splitX, 0, w - splitX, h, splitX, 0, w - splitX, h);
+        }
+
+        // UPDATE UI: Move the HTML slider elements to match the splitX
+        // We use percentages because your CSS likely expects that
+        const pct = position * 100 + "%";
+        if (sliderBar) sliderBar.style.left = pct;
+        if (sliderHandle) sliderHandle.style.left = pct;
+
+        animationId = requestAnimationFrame(drawLoop);
+    }
+
+    /* =======================================================
+       2) Interaction
+       ======================================================= */
+    
+    function updatePos(clientX) {
+        const rect = canvas.getBoundingClientRect();
+        position = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
+    }
+
+    wrapper.addEventListener("mousemove", (e) => updatePos(e.clientX));
+    wrapper.addEventListener("touchstart", (e) => updatePos(e.touches[0].clientX));
+    wrapper.addEventListener("touchmove", (e) => {
+        updatePos(e.touches[0].clientX);
+        e.preventDefault();
     });
-
-    wrapper.addEventListener("mouseleave", setCenter);
+    
+    // Start loop
+    animationId = requestAnimationFrame(drawLoop);
 
     /* =======================================================
-              2) Frame-accurate sync (Left → Right)
-           → No setTimeout, no 30ms snapping judder
+       3) Sync & Toggle Logic
        ======================================================= */
+    
     let syncing = false;
 
-    function softSyncLoop(ts, metadata) {
-      if (!syncing || videoLeft.paused) return;
-      const d = videoLeft.currentTime - videoRight.currentTime;
-      // Only nudge when drift exceeds 1 frame (≈16ms)
-      if (Math.abs(d) > 0.016) {
-        videoRight.currentTime = videoLeft.currentTime;
-      }
-      videoLeft.requestVideoFrameCallback(softSyncLoop);
+    function softSyncLoop() {
+        if (!syncing || videoLeft.paused) return;
+        const d = videoLeft.currentTime - videoRight.currentTime;
+        if (Math.abs(d) > 0.02) { 
+            videoRight.currentTime = videoLeft.currentTime;
+        }
+        videoLeft.requestVideoFrameCallback(softSyncLoop);
     }
 
     function startSync() {
-      if (syncing) return;
-      syncing = true;
-      videoLeft.requestVideoFrameCallback(softSyncLoop);
+        if (syncing) return;
+        syncing = true;
+        videoLeft.requestVideoFrameCallback(softSyncLoop);
     }
-
-    function stopSync() {
-      syncing = false;
-    }
-
-    /* =======================================================
-                3) Unified play/pause (zero desync)
-       ======================================================= */
-    let isPlaying = true;
+    function stopSync() { syncing = false; }
 
     toggleBtn.addEventListener("click", () => {
-      if (isPlaying) {
-        videoLeft.pause();
-        videoRight.pause();
-        stopSync();
-        icon.src = "static/images/play.png";
-        icon.alt = "Play";
-      } else {
-        videoLeft.play();
-        videoRight.play();
-        startSync();
-        icon.src = "static/images/pause.png";
-        icon.alt = "Pause";
-      }
-      isPlaying = !isPlaying;
+        if (isPlaying) {
+            videoLeft.pause();
+            videoRight.pause();
+            stopSync();
+            icon.src = "static/images/play.png";
+            icon.alt = "Play";
+        } else {
+            videoLeft.play();
+            videoRight.play();
+            startSync();
+            icon.src = "static/images/pause.png";
+            icon.alt = "Pause";
+        }
+        isPlaying = !isPlaying;
     });
 
     /* =======================================================
-      4) Lazy video switching with burst pre-buffering
-         → prevents black stalls + long seek delay
+       4) Dynamic Video Switching
        ======================================================= */
-
     const rightVideos = [
-      {
-        key: "llrm",
-        toggle_label: "iLRM",
-        label32:  "Long-LRM (0.84s)",
-        label128: "Long-LRM (6.39s)",
-        color: "#7E98F7FF",
-        change_color: "#FCA55EFF",
-      },
-      {
-        key: "ilrm",
-        toggle_label: "Long-LRM",
-        label32:  "iLRM (0.53s)",
-        label128: "iLRM (5.61s)",
-        color: "#FCA55EFF",
-        change_color: "#7E98F7FF",
-      },
+        { key: "llrm", toggle_label: "iLRM", label32: "Long-LRM", label128: "Long-LRM", color: "#7E98F7FF", change_color: "#FCA55EFF" },
+        { key: "ilrm", toggle_label: "Long-LRM", label32: "iLRM", label128: "iLRM", color: "#FCA55EFF", change_color: "#7E98F7FF" },
     ];
-
     let currentRightIndex = 0;
 
-    // GPU-friendly preload ramp
-    function softPreload(src) {
-      const v = document.createElement("video");
-      v.preload = "metadata";
-      v.src = src;
-      v.muted = true;
-      // Browser drops ref automatically after decode warmup
-      setTimeout(() => v.remove(), 4000);
-    }
-
-    /* =======================================================
-      Updated setRightVideo with Initialization Flag
-       ======================================================= */
-    
-    // 1. Add 'isInit' parameter defaulting to false
     function setRightVideo(idx, isInit = false) {
-      const info = rightVideos[idx];
-      currentRightIndex = idx;
+        const info = rightVideos[idx];
+        currentRightIndex = idx;
+        const syncTime = videoLeft.currentTime || 0;
+        
+        const shouldPlay = isInit ? true : isPlaying;
 
-      const syncTime   = videoLeft.currentTime || 0;
-      
-      // LOGIC CHANGE:
-      // If it is the Initial load (isInit === true), we assume the Left video 
-      // is INTENDED to be playing (Autoplay), so we treat it as active.
-      // Otherwise, we strictly check the actual playback state of the left video.
-      const leftIsActive = isInit ? true : !videoLeft.paused;
-      
-      const shouldPlay = leftIsActive && isPlaying; 
+        const srcPath = `static/videos/${baseView}_comp/${baseView}${info.key}_.mp4`;          
 
-      const srcPath    = `static/videos/${baseView}_comp/${baseView}${info.key}_.mp4`;          
+        const source = videoRight.querySelector("source") || videoRight;
+        videoRight.pause();
+        source.src = srcPath;
+        videoRight.load();
 
-      softPreload(srcPath);
+        function onCanPlay() {
+            videoRight.removeEventListener("canplay", onCanPlay);
+            videoRight.currentTime = syncTime;
 
-      const source = videoRight.querySelector("source");
-      if (!source) return;
-      
-      videoRight.pause();
-      source.src = srcPath;
-      videoRight.load();
-
-      function onCanPlay() {
-        videoRight.removeEventListener("canplay", onCanPlay);
-
-        const t = Math.min(syncTime, videoRight.duration || syncTime);
-
-        function onSeeked() {
-          videoRight.removeEventListener("seeked", onSeeked);
-          
-          if (shouldPlay) {
-            // Add catch to prevent console errors if browser blocks autoplay
-            videoRight.play().catch(() => {}); 
-            startSync();
-          } else {
-            videoRight.pause();
-            stopSync(); 
-          }
+            function onSeeked() {
+                videoRight.removeEventListener("seeked", onSeeked);
+                if (shouldPlay) {
+                    videoRight.play().catch(()=>{});
+                    startSync();
+                } else {
+                    videoRight.pause();
+                    stopSync();
+                }
+            }
+            videoRight.addEventListener("seeked", onSeeked);
         }
-        videoRight.addEventListener("seeked", onSeeked);
-        videoRight.currentTime = t;
-      }
-      videoRight.addEventListener("canplay", onCanPlay);
+        videoRight.addEventListener("canplay", onCanPlay);
 
-      // UI update
-      const label = baseView === "128" ? info.label128 : info.label32;
-      if (rightLabel) rightLabel.textContent = label;
-      if (rightLabel) rightLabel.style.color = info.color;
-      if (changeBtn) changeBtn.innerHTML = `Click to compare with <span style="color: ${info.change_color}">${info.toggle_label}</span>`;
+        if (rightLabel) {
+            rightLabel.textContent = baseView === "128" ? info.label128 : info.label32;
+            rightLabel.style.color = info.color;
+        }
+        if (changeBtn) changeBtn.innerHTML = `Click to compare with <span style="color: ${info.change_color}">${info.toggle_label}</span>`;
     }
 
     /* =======================================================
-      Initialization Block
+       5) Initialization
        ======================================================= */
     if (changeBtn) {
-      // 2. Pass 'true' here to force autoplay logic on page load
-      setRightVideo(currentRightIndex, true);
-      
-      changeBtn.addEventListener("click", () => {
-        const next = (currentRightIndex + 1) % rightVideos.length;
-        // Normal clicks pass 'false' (default), respecting pause state
-        setRightVideo(next); 
-      });
+        // 1. Force Left Video to Play
+        videoLeft.muted = true; 
+        const playPromise = videoLeft.play();
+        
+        if (playPromise !== undefined) {
+            playPromise.then(() => {
+                startSync();
+            }).catch(error => {
+                console.warn("Autoplay blocked:", error);
+                isPlaying = false;
+                icon.src = "static/images/play.png";
+            });
+        }
+
+        // 2. Initialize Right Video
+        setRightVideo(currentRightIndex, true);
+        
+        changeBtn.addEventListener("click", () => {
+            setRightVideo((currentRightIndex + 1) % rightVideos.length);
+        });
     }
   });
 });
