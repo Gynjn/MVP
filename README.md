@@ -45,7 +45,14 @@ CUDA_VISIBLE_DEVICES=0 python inference.py --config configs/inference.yaml
 - [ ] Preprocessed Tanks&Temple and Mip-NeRF360 dataset
 
 ## Citation
-<!--   -->
+```
+@article{kang2025multi,
+  title={Multi-view Pyramid Transformer: Look Coarser to See Broader},
+  author={Kang, Gyeongjin and Yang, Seungkwon and Nam, Seungtae and Lee, Younggeun and Kim, Jungwoo and Park, Eunbyung},
+  journal={arXiv preprint arXiv:2512.07806},
+  year={2025}
+}
+```
 
 ## Acknowledgements
 
