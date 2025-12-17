@@ -33,7 +33,7 @@ class PerceptualLoss(nn.Module):
     
     def _load_weights(self):
         """Load pre-trained VGG weights. """
-        weight_file = Path("/hdd_1/jinnnn/imagenet-vgg-verydeep-19.mat")
+        weight_file = Path("./imagenet-vgg-verydeep-19.mat")
         weight_file.parent.mkdir(exist_ok=True, parents=True)
         
         if not weight_file.exists():

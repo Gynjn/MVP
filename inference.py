@@ -41,8 +41,8 @@ dataloader_iter = iter(dataloader)
 
 # Import model and load checkpoint
 module, class_name = config.model.class_name.rsplit(".", 1)
-LVSM = importlib.import_module(module).__dict__[class_name]
-model = LVSM(config).to(device)
+MVP = importlib.import_module(module).__dict__[class_name]
+model = MVP(config).to(device)
 msg = model.load_ckpt(config.inference.ckpt_path)
 print(msg)
 

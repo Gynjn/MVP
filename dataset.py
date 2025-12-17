@@ -62,14 +62,13 @@ class Dataset(Dataset):
         c2w_list = []
 
         resize_h = self.config.data.get("resize_h", -1)
-        patch_size = self.config.model.patch_size * self.config.get("patch_factor", 2)
+        patch_size = self.config.model.patch_size * self.config.model.get("patch_factor", 2)
         square_crop = self.config.data.square_crop
 
 
         resize_w = int(resize_h / 540 * 960) # 455.1
         resize_h = int(round(resize_h / patch_size)) * patch_size # 256
         resize_w = int(round(resize_w / patch_size)) * patch_size # 448
-
         for frame in frames:
             image = np.array(Image.open(os.path.join(image_base_dir, frame["file_path"])))
             fxfycxcyhw = [frame["fx"], frame["fy"], frame["cx"], frame["cy"], frame["h"], frame["w"]]

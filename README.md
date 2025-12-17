@@ -40,8 +40,25 @@ Update the entries in `data/dl3dv_eval.txt` to point to the correct processed da
 CUDA_VISIBLE_DEVICES=0 python inference.py --config configs/inference.yaml
 ```
 
+## Train
+
+Update the `configs/api_keys.yaml` with your own personal wandb api key.
+
+Update the entries in `data/dl3dv_train.txt` to point to the correct processed dataset path.
+
+```bash
+# Example for single GPU training
+CUDA_VISIBLE_DEVICES=0 python train_single.py --config configs/train_stage1.yaml
+
+# Example for multi GPU training
+torchrun --nproc_per_node 8 --nnodes 1 \
+         --rdzv_id 1234 --rdzv_endpoint localhost:8888 \
+         train.py --config configs/train_stage1.yaml
+```
+
+
 ## TODO List
-- [ ] Training code
+- [ ] Training code (Stage 3)
 - [ ] Preprocessed Tanks&Temple and Mip-NeRF360 dataset
 
 ## Citation

@@ -1,0 +1,81 @@
+model:
+  class_name: model.MVPModel
+
+  patch_factor: 4 # half for stage1 training
+  dim1: 256
+  dim2: 512
+  dim3: 1024
+  num_register_tokens: 4
+  head_dim: 64
+  inter_multi: 4
+  qk_norm: true
+  stage1_nlayer: 2
+  stage2_nlayer: 4
+  stage3_nlayer: 8
+  group_size: 4
+  patch_size: 8
+  in_channels: 12
+
+  gaussians:
+    sh_degree: 1
+    opacity_degree: 2
+    near_plane: 0.01
+    far_plane: 1000000.0
+    scale_bias: -6.9
+    scale_max: -1.2
+    opacity_bias: -2.0
+    align_to_pixel: true
+    max_dist: 500.0
+
+data:
+  data_path: "data/dl3dv_train.txt"
+  json_path: "data/dl3dv_fold_8_kmeans_input_idx.json"
+  resize_h: 270
+  square_crop: false
+
+  input_frame_select_type: "uniform"
+  target_frame_select_type: "random"
+  num_input_frames: 32
+  num_target_frames: 12
+  target_has_input: true
+  min_frame_dist: 64
+  max_frame_dist: 128
+  shuffle_input_prob: 0.0
+  reverse_input_prob: 0.5
+
+training:
+  # resume_ckpt: /path/to/cktp
+  # reset_training_state: true
+  use_amp: true
+  use_tf32: true
+  amp_dtype: bf16
+
+  api_key_path: ./configs/api_keys.yaml
+  batch_size_per_gpu: 8
+  warmup: 3000
+  weight_decay: 0.05
+  beta1: 0.9
+  beta2: 0.95
+  lr: 0.0002
+  train_steps: 100000
+  train_stage: 1
+
+  dataset_name: dataset.Dataset
+  checkpoint_dir: ./experiments/checkpoints/mvp_stage1
+  checkpoint_every: 5000
+  grad_accum_steps: 1
+  grad_checkpoint_every: 1
+
+  l2_loss_weight: 1.0
+  lpips_loss_weight: 0.0
+  perceptual_loss_weight: 0.2
+
+  num_threads: 8
+  num_workers: 4
+  prefetch_factor: 8
+  print_every: 20
+
+  wandb_exp_name: MVP
+  wandb_log_every: 50
+  wandb_project: MVP
+  

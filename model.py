@@ -16,7 +16,7 @@ import numpy as np
 from dpt_head import DPTHead
 from torch_impl import _spherical_harmonics
 from prope_custom import PropeDotProductAttention
-# from loss import LossComputer
+from loss import LossComputer
 
 def _init_weights(module):
     if isinstance(module, nn.Linear):
@@ -145,15 +145,30 @@ class MVPModel(nn.Module):
         nn.init.normal_(self.register_token_init, mean=0.0, std=0.02)
 
         ### hard-coded Prope attention modules
-        self.attention2 = PropeDotProductAttention(
-            head_dim=64, patches_x=60, patches_y=34,
-            image_width=960, image_height=544,
+        if config.training.train_stage == 1:
+            self.attention2 = PropeDotProductAttention(
+            head_dim=64, patches_x=30, patches_y=16,
+            image_width=480, image_height=256,
             num_register_tokens=self.num_register_tokens)
 
-        self.attention3 = PropeDotProductAttention(
-            head_dim=64, patches_x=30, patches_y=17,
-            image_width=960, image_height=544,
-            num_register_tokens=self.num_register_tokens)
+            self.attention3 = PropeDotProductAttention(
+                head_dim=64, patches_x=15, patches_y=8,
+                image_width=480, image_height=256,
+                num_register_tokens=self.num_register_tokens)
+
+        # elif config.training.train_stage in [2, 3]:
+        elif config.training.train_stage == 2:
+            self.attention2 = PropeDotProductAttention(
+                head_dim=64, patches_x=60, patches_y=34,
+                image_width=960, image_height=544,
+                num_register_tokens=self.num_register_tokens)
+
+            self.attention3 = PropeDotProductAttention(
+                head_dim=64, patches_x=30, patches_y=17,
+                image_width=960, image_height=544,
+                num_register_tokens=self.num_register_tokens)
+        else:
+            raise NotImplementedError
 
         self.merge_block1 = nn.Conv2d(
             self.dim1, self.dim2, kernel_size=2, stride=2, 
@@ -171,12 +186,12 @@ class MVPModel(nn.Module):
             out_channels = [self.dim1, self.dim2, self.dim3],
         )
 
-        # self.loss_computer = LossComputer(config)
+        self.loss_computer = LossComputer(config)
 
     def train(self, mode=True):
         """Override the train method to keep the loss computer in eval mode"""
         super().train(mode)
-        # self.loss_computer.eval()
+        self.loss_computer.eval()
 
     def _init_tokenizers(self):
         """Initialize the image and target pose tokenizers, and image token decoder"""
@@ -348,60 +363,87 @@ class MVPModel(nn.Module):
             xyz = dist * rayd_gs + rayo_gs
 
             # precompute opacity to give regularization
-            # dirs = xyz[:, None, :, :] - t_c2w[..., :3, 3][..., None, :] # (B, T, V*H*W, 3)
-            # opacity_broad = torch.broadcast_to(
-            #     opacity[..., None, :, :, :], (b, t, opacity.shape[1], -1, 1)
-            # )
-            # opacity_precompute = _spherical_harmonics(
-            #     self.config.model.gaussians.opacity_degree,
-            #     dirs, opacity_broad)
+            dirs = xyz[:, None, :, :] - t_c2w[..., :3, 3][..., None, :] # (B, T, V*H*W, 3)
+            opacity_broad = torch.broadcast_to(
+                opacity[..., None, :, :, :], (b, t, opacity.shape[1], -1, 1)
+            )
+            opacity_precompute = _spherical_harmonics(
+                self.config.model.gaussians.opacity_degree,
+                dirs, opacity_broad)
 
         gaussians = {
-            "xyz": xyz[0],
-            "feature": feature[0],
-            "scale": scale[0],
-            "rotation": rotation[0],
-            "opacity": opacity[0],
+            "xyz": xyz,
+            "feature": feature,
+            "scale": scale,
+            "rotation": rotation,
+            "opacity": opacity_precompute,
         }
-
-        renderings = []
-
+        
         with torch.autocast(device_type="cuda", enabled=False):
-            for i in range(t):            
-                dir = gaussians["xyz"] - t_c2w[0, i:i+1, :3, 3][None, ...] # (1, N, 3)
-                opacity_i = _spherical_harmonics(
-                    self.config.model.gaussians.opacity_degree,
-                    dir, gaussians["opacity"][None, ...])[0] # (N, 1)
-                rendering = self.render_one(gaussians["xyz"], gaussians["feature"], gaussians["scale"], gaussians["rotation"], opacity_i, 
-                                            t_c2w[0, i], t_fxfycxcy[0, i], w, h, 
-                                            self.config.model.gaussians.sh_degree, 
-                                            self.config.model.gaussians.near_plane, 
-                                            self.config.model.gaussians.far_plane)
-                renderings.append(rendering)
-            renderings = torch.cat(renderings, dim=0)[None, ...] # (1, T, H, W, 3)
+            # Rasterization
+            # renderings = self.render(
+            #     gaussians["xyz"], 
+            #     gaussians["feature"], 
+            #     gaussians["scale"], 
+            #     gaussians["rotation"], 
+            #     gaussians["opacity"], 
+            #     t_c2w, 
+            #     t_fxfycxcy, 
+            #     w, h
+            # )
+            renderings = GaussianRenderer.apply(
+                gaussians["xyz"], 
+                gaussians["feature"], 
+                gaussians["scale"], 
+                gaussians["rotation"], 
+                gaussians["opacity"], 
+                t_c2w, 
+                t_fxfycxcy, 
+                w, h,
+                self.config.model.gaussians.sh_degree,
+                self.config.model.gaussians.near_plane,
+                self.config.model.gaussians.far_plane,
+            ) # (B, V, H, W, 3)
 
-        renderings = renderings.permute(0, 1, 4, 2, 3).contiguous() # (B, V, 3, H, W)
-
-        # loss_metrics = self.loss_computer(
-        #     renderings,
-        #     target_data_dict["image"],
-        # )
+        # renderings = []
 
         # with torch.autocast(device_type="cuda", enabled=False):
-        #     ## opacity regularization
-        #     rand_dirs = torch.randn_like(xyz)
-        #     rand_dirs = F.normalize(rand_dirs, p=2, dim=-1) # make it a unit vector
-        #     opacity_random = _spherical_harmonics(
-        #         self.config.model.gaussians.opacity_degree,
-        #         rand_dirs, opacity)
-        #     opacity_random = opacity_random.sigmoid().mean()
+        #     for i in range(t):            
+        #         dir = gaussians["xyz"] - t_c2w[0, i:i+1, :3, 3][None, ...] # (1, N, 3)
+        #         opacity_i = _spherical_harmonics(
+        #             self.config.model.gaussians.opacity_degree,
+        #             dir, gaussians["opacity"][None, ...])[0] # (N, 1)
+        #         rendering = self.render_one(gaussians["xyz"], gaussians["feature"], gaussians["scale"], gaussians["rotation"], opacity_i, 
+        #                                     t_c2w[0, i], t_fxfycxcy[0, i], w, h, 
+        #                                     self.config.model.gaussians.sh_degree, 
+        #                                     self.config.model.gaussians.near_plane, 
+        #                                     self.config.model.gaussians.far_plane)
+        #         renderings.append(rendering)
+        #     renderings = torch.cat(renderings, dim=0)[None, ...] # (1, T, H, W, 3)
 
-        # loss_metrics["opacity_loss"] = opacity_random * 0.001
-        # loss_metrics["loss"] = loss_metrics["loss"] + loss_metrics["opacity_loss"]
+        renderings = renderings.permute(0, 1, 4, 2, 3).contiguous() # (B, V, 3, H, W)
+        
+        loss_metrics = self.loss_computer(
+            renderings,
+            target_data_dict["image"],
+        )
+
+        with torch.autocast(device_type="cuda", enabled=False):
+            ## opacity regularization
+            rand_dirs = torch.randn_like(xyz)
+            rand_dirs = F.normalize(rand_dirs, p=2, dim=-1) # make it a unit vector
+            opacity_random = _spherical_harmonics(
+                self.config.model.gaussians.opacity_degree,
+                rand_dirs, opacity)
+            opacity_random = opacity_random.sigmoid().mean()
+
+        loss_metrics["opacity_loss"] = opacity_random * 0.001
+        loss_metrics["loss"] = loss_metrics["loss"] + loss_metrics["opacity_loss"]
 
         result = edict(
             input=input_data_dict,
             target=target_data_dict,
+            loss_metrics=loss_metrics,
             render=renderings,
             )
 
