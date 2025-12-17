@@ -22,7 +22,7 @@ pip install git+https://github.com/nerfstudio-project/gsplat.git
 ```
 
 ## Checkpoints
-The model checkpoints are host on [HuggingFace](https://huggingface.co/Gynjn/MVP) ([mvp_540x960](https://huggingface.co/Gynjn/MVP/resolve/main/mvp.pt?download=true)).
+The model checkpoints are host on [HuggingFace](https://huggingface.co/Gynjn/MVP) ([mvp_960x540](https://huggingface.co/Gynjn/MVP/resolve/main/mvp.pt?download=true)).
 
 
 For training and evaluation, we used the DL3DV dataset after applying undistortion preprocessing with this [script](https://github.com/arthurhero/Long-LRM/blob/main/data/prosess_dl3dv.py), originally introduced in [Long-LRM](https://arthurhero.github.io/projects/llrm/index.html). 
