@@ -71,7 +71,7 @@ torchrun --nproc_per_node 8 --nnodes 1 \
 }
 ```
 
-## Acknowledgements
+## Related project
 
 This project is built on many amazing research works, thanks a lot to all the authors for sharing!
 
@@ -82,3 +82,7 @@ This project is built on many amazing research works, thanks a lot to all the au
 - [iLRM](https://github.com/Gynjn/iLRM)
 - [ProPE](https://github.com/liruilong940607/prope)
 - [LVT](https://toobaimt.github.io/lvt/)
+
+## ACKNOWLEDGEMENTS
+
+This work was supported by Institute of Information & Communications Technology Planning & Evaluation (IITP) grant funded by the Korea government (MSIT) (RS-2025-02653113, High-Performance Research AI Computing Infrastructure Support at the 2 PFLOPS Scale)
