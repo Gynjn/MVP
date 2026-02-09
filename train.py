@@ -142,8 +142,6 @@ optimizer, lr_scheduler, cur_train_step, cur_param_update_step = auto_resume_job
 
 dist.barrier()
 
-loss_computer = LossComputer(config).cuda().eval()
-
 start_train_step = cur_train_step
 update_ema(ema, model.module, decay=0)
 model.train()

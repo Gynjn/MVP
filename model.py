@@ -17,6 +17,13 @@ from dpt_head import DPTHead
 from torch_impl import _spherical_harmonics
 from prope_custom import PropeDotProductAttention
 
+def requires_grad(model, flag=True):
+    """
+    Set requires_grad flag for all parameters in a model.
+    """
+    for p in model.parameters():
+        p.requires_grad = flag
+
 def _init_weights(module):
     if isinstance(module, nn.Linear):
         torch.nn.init.normal_(module.weight, mean=0.0, std=0.02)
@@ -110,6 +117,7 @@ class MVPModel(nn.Module):
         self.opacity_dim = 1 * (self.config.model.gaussians.opacity_degree + 1) ** 2        
         self._init_tokenizers()
         self.inference_mode = hasattr(config, "inference")
+        self.freeze_prev = config.model.get("freeze_prev", False)
 
         self.stage1 = [
             TransformerBlock(
@@ -127,6 +135,7 @@ class MVPModel(nn.Module):
             for _ in range(config.model.stage2_nlayer)
         ]
         self.stage2 = nn.ModuleList(self.stage2)
+
         self.stage3 = [
             TransformerBlock(
                 config.model.dim3, False, # bias
@@ -198,6 +207,17 @@ class MVPModel(nn.Module):
             features = self.dim3,
             out_channels = [self.dim1, self.dim2, self.dim3],
         )
+
+        # freeze stage1, 2
+        if self.freeze_prev:
+            self.register_token_init.requires_grad = False
+            requires_grad(self.image_tokenizer, False)
+            requires_grad(self.stage1, False)
+            requires_grad(self.stage2, False)
+            requires_grad(self.merge_block1, False)
+            requires_grad(self.resize_block1, False)
+            requires_grad(self.merge_block2, False)
+            requires_grad(self.resize_block2, False)            
 
         if not self.inference_mode:
             from loss import LossComputer
@@ -294,51 +314,52 @@ class MVPModel(nn.Module):
 
             i_w2c = torch.inverse(i_c2w)
 
+        context = torch.no_grad() if self.freeze_prev else nullcontext()
 
-        register_tokens = self.register_token_init.repeat(b, v, 1, 1)
-
-        x = self.image_tokenizer(i_raymap_images)
-        x = rearrange(x, "b (v l) d -> b v l d", v=v)
-        x = torch.cat([register_tokens, x], dim=2)  # Add register tokens
-        x = rearrange(x, "b v l d -> (b v) l d")
-        x = self.run_stage1(x, None)
-        r_tokens1, i_tokens1_prev = x[:, :self.num_register_tokens], x[:, self.num_register_tokens:]
-        r_tokens1 = self.resize_block1(r_tokens1)
-        hh1 = h // self.patch_size
-        ww1 = w // self.patch_size
-        i_tokens1 = rearrange(
-            i_tokens1_prev, "b (hh ww) d -> b d hh ww",
-            hh=hh1, ww=ww1)
-        i_tokens1 = self.merge_block1(i_tokens1)
-        i_tokens1 = rearrange(
-            i_tokens1, "b d hh ww -> b (hh ww) d",
-            hh=hh1//2, ww=ww1//2)
-        x = torch.cat([r_tokens1, i_tokens1], dim=1)
-        x = rearrange(x, "(b g v) l d -> (b g) (v l) d", g=v // self.group_size, v=self.group_size)
-        info_stage2 = {
-            "num_input_views": v,
-            "w2c": rearrange(
-                i_w2c, "b (g v) ... -> (b g) v ...",
-                g=v // self.group_size, v=self.group_size),
-            "Ks": rearrange(
-                Ks, "b (g v) ... -> (b g) v ...",
-                g=v // self.group_size, v=self.group_size),
-            "attn2": self.attention2,
-        }
-        x = self.run_stage2(x, info_stage2)
-        r_tokens2, i_tokens2_prev = x[:, :self.num_register_tokens], x[:, self.num_register_tokens:]
-        r_tokens2 = self.resize_block2(r_tokens2)
-        hh2 = hh1 // 2
-        ww2 = ww1 // 2
-        i_tokens2 = rearrange(
-            i_tokens2_prev, "b (hh ww) d -> b d hh ww",
-            hh=hh2, ww=ww2)
-        i_tokens2 = self.merge_block2(i_tokens2)
-        i_tokens2 = rearrange(
-            i_tokens2, "b d hh ww -> b (hh ww) d",
-            hh=hh2//2, ww=ww2//2)
-        x = torch.cat([r_tokens2, i_tokens2], dim=1)
-        x = rearrange(x, "(b v) l d -> b (v l) d", v=v)
+        with context:
+            register_tokens = self.register_token_init.repeat(b, v, 1, 1)
+            x = self.image_tokenizer(i_raymap_images)
+            x = rearrange(x, "b (v l) d -> b v l d", v=v)
+            x = torch.cat([register_tokens, x], dim=2)  # Add register tokens
+            x = rearrange(x, "b v l d -> (b v) l d")
+            x = self.run_stage1(x, None)
+            r_tokens1, i_tokens1_prev = x[:, :self.num_register_tokens], x[:, self.num_register_tokens:]
+            r_tokens1 = self.resize_block1(r_tokens1)
+            hh1 = h // self.patch_size
+            ww1 = w // self.patch_size
+            i_tokens1 = rearrange(
+                i_tokens1_prev, "b (hh ww) d -> b d hh ww",
+                hh=hh1, ww=ww1)
+            i_tokens1 = self.merge_block1(i_tokens1)
+            i_tokens1 = rearrange(
+                i_tokens1, "b d hh ww -> b (hh ww) d",
+                hh=hh1//2, ww=ww1//2)
+            x = torch.cat([r_tokens1, i_tokens1], dim=1)
+            x = rearrange(x, "(b g v) l d -> (b g) (v l) d", g=v // self.group_size, v=self.group_size)
+            info_stage2 = {
+                "num_input_views": v,
+                "w2c": rearrange(
+                    i_w2c, "b (g v) ... -> (b g) v ...",
+                    g=v // self.group_size, v=self.group_size),
+                "Ks": rearrange(
+                    Ks, "b (g v) ... -> (b g) v ...",
+                    g=v // self.group_size, v=self.group_size),
+                "attn2": self.attention2,
+            }
+            x = self.run_stage2(x, info_stage2)
+            r_tokens2, i_tokens2_prev = x[:, :self.num_register_tokens], x[:, self.num_register_tokens:]
+            r_tokens2 = self.resize_block2(r_tokens2)
+            hh2 = hh1 // 2
+            ww2 = ww1 // 2
+            i_tokens2 = rearrange(
+                i_tokens2_prev, "b (hh ww) d -> b d hh ww",
+                hh=hh2, ww=ww2)
+            i_tokens2 = self.merge_block2(i_tokens2)
+            i_tokens2 = rearrange(
+                i_tokens2, "b d hh ww -> b (hh ww) d",
+                hh=hh2//2, ww=ww2//2)
+            x = torch.cat([r_tokens2, i_tokens2], dim=1)
+            x = rearrange(x, "(b v) l d -> b (v l) d", v=v)
         
         info_stage3 = {
             "num_input_views": v,

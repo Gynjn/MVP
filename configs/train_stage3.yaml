@@ -16,6 +16,8 @@ model:
   patch_size: 8
   in_channels: 12
 
+  freeze_prev: true
+
   gaussians:
     sh_degree: 1
     opacity_degree: 2
@@ -43,16 +45,24 @@ data:
   max_frame_dist: 128
   shuffle_input_prob: 0.0
   reverse_input_prob: 0.5
+  seed: 777  
 
 training:
-  # resume_ckpt: /path/to/cktp
+  # resume_ckpt: /path/to/stage2_ckpt
   # reset_training_state: true
   use_amp: true
   use_tf32: true
   amp_dtype: bf16
 
-  api_key_path: ./configs/api_keys.yaml
-  batch_size_per_gpu: 2
+  api_key_path: ./configs/api_keys_test.yaml
+  num_views: [16, 32, 64, 64] # input
+  target_views: [6, 6, 6, 1]
+  batch_size_per_gpu: [4, 2, 1, 1]
+  res_dict:
+    - [544, 960]
+    - [544, 960]
+    - [544, 960]
+    - [544, 960]
   warmup: 3000
   weight_decay: 0.05
   beta1: 0.9
@@ -79,3 +89,4 @@ training:
   wandb_exp_name: MVP
   wandb_log_every: 50
   wandb_project: MVP
+  

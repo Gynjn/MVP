@@ -36,8 +36,11 @@ class PerceptualLoss(nn.Module):
         weight_file = Path("./imagenet-vgg-verydeep-19.mat")
         weight_file.parent.mkdir(exist_ok=True, parents=True)
         
-        if not weight_file.exists():
-            os.system(f'wget https://www.vlfeat.org/matconvnet/models/imagenet-vgg-verydeep-19.mat -O {weight_file}')
+        if torch.distributed.get_rank() == 0:
+            # Download weights if needed
+            if not weight_file.exists():
+                os.system(f'wget https://www.vlfeat.org/matconvnet/models/imagenet-vgg-verydeep-19.mat -O {weight_file}')
+        torch.distributed.barrier()
         
         # Load MatConvNet weights
         vgg_data = scipy.io.loadmat(weight_file)

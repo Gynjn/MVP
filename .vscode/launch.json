@@ -8,9 +8,9 @@
             "name": "Python: Current File",
             "type": "debugpy",
             "request": "launch",
-            "program": "${workspaceFolder}/inference.py",
+            "program": "${workspaceFolder}/train_stage3.py",
             "env": {"CUDA_VISIBLE_DEVICES": "1"},
-            "args": ["--config", "configs/inference.yaml"],
+            "args": ["--config", "configs/train_stage3.yaml"],
             "console": "integratedTerminal",
             "justMyCode": true
         }
