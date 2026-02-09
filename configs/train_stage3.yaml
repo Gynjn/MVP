@@ -55,7 +55,7 @@ training:
   amp_dtype: bf16
 
   api_key_path: ./configs/api_keys_test.yaml
-  num_views: [16, 32, 64, 64] # input
+  num_views: [16, 32, 64, 128] # input
   target_views: [6, 6, 6, 1]
   batch_size_per_gpu: [4, 2, 1, 1]
   res_dict:
