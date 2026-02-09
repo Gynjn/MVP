@@ -58,7 +58,6 @@ torchrun --nproc_per_node 8 --nnodes 1 \
 
 
 ## TODO List
-- [ ] Training code (Stage 3)
 - [ ] Preprocessed Tanks&Temple and Mip-NeRF360 dataset
 
 ## Citation
