@@ -28,7 +28,7 @@ model:
     max_dist: 500.0
 
 data:
-  data_path: "data/dl3dv_eval.txt"
+  data_path: "data/dl3dv_benchmark.txt"
   json_path: "data/dl3dv_fold_8_kmeans_input_idx.json"
   resize_h: 540
   random_crop: 1.0
@@ -58,3 +58,5 @@ inference:
   ckpt_path: ./mvp.pt
   out_dir: ./experiments/inference
   compute_metrics: true
+
+  chunk_size: 4

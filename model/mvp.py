@@ -15,7 +15,6 @@ from model.utils import (
     compute_plucmap,
 )
 import numpy as np
-from model.prope_custom import PropeDotProductAttention
 from model.dpt_head import DPTHead
 # torch version of the spherical harmonics opacity calculation, 
 # which is used for regularization during training
@@ -24,6 +23,18 @@ from model.dpt_head import DPTHead
 # the CUDA version of the spherical harmonics opacity calculation, 
 # which is used for regularization during training
 from sh_cuda.mvp_cuda import spherical_harmonics_opacity
+
+try:
+    from flash_attn.cute import flash_attn_func
+    FA4_AVAILABLE = True
+except ImportError:
+    FA4_AVAILABLE = False
+
+if FA4_AVAILABLE:
+    from model.prope_custom_fa import PropeDotProductAttention
+else:
+    from model.prope_custom import PropeDotProductAttention
+
 
 def requires_grad(model, flag=True):
     """
@@ -163,7 +174,10 @@ class MVPModel(nn.Module):
         self._init_tokenizers()
         self.inference_mode = hasattr(config, "inference")
         self.freeze_prev = config.model.get("freeze_prev", False)
-        GaussianRenderer.CHUNK_SIZE = self.config.training.get("chunk_size", 1)     
+        if self.inference_mode:
+            GaussianRenderer.CHUNK_SIZE = self.config.inference.get("chunk_size", 1)
+        else:
+            GaussianRenderer.CHUNK_SIZE = self.config.training.get("chunk_size", 1)
 
         self.stage1 = [
             TransformerBlock(
@@ -543,6 +557,7 @@ class MVPModel(nn.Module):
         for i in range(len(self.stage1)):
             x = torch.utils.checkpoint.checkpoint(
                 self.stage1[i], x, False, 1, info, use_reentrant=False)
+            # x = self.stage1[i](x, False, 1, info) # 
         return x
     
     def run_stage2(self, x, info):
@@ -554,11 +569,13 @@ class MVPModel(nn.Module):
                     x, "(b g) (v l) d -> (b g v) l d", g=v//g, v=g)
                 x = torch.utils.checkpoint.checkpoint(
                     self.stage2[i], x, False, 2, info, use_reentrant=False)
+                # x = self.stage2[i](x, False, 2, info)
                 x = rearrange(
                     x, "(b g v) l d -> (b g) (v l) d", g=v//g, v=g)
             else:
                 x = torch.utils.checkpoint.checkpoint(
                     self.stage2[i], x, True, 2, info, use_reentrant=False)
+                # x = self.stage2[i](x, True, 2, info)
         return rearrange(x, "(b g) (v l) d -> (b g v) l d", g=v//g, v=g)
 
     def run_stage3(self, x, info):
@@ -568,10 +585,12 @@ class MVPModel(nn.Module):
                 x = rearrange(x, "b (v l) d -> (b v) l d", v=v)
                 x = torch.utils.checkpoint.checkpoint(
                     self.stage3[i], x, False, 3, info, use_reentrant=False)
+                # x = self.stage3[i](x, False, 3, info)
                 x = rearrange(x, "(b v) l d -> b (v l) d", v=v)
             else:
                 x = torch.utils.checkpoint.checkpoint(
                     self.stage3[i], x, True, 3, info, use_reentrant=False)
+                # x = self.stage3[i](x, True, 3, info)
         return rearrange(x, "b (v l) d -> (b v) l d", v=v)
 
     def save_input_video(self, input_intr, input_c2ws, gaussian_dict, H, W, save_path, insert_frame_num = 16):

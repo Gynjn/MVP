@@ -136,7 +136,7 @@ def export_results(
     rendered_image = result.render
     input_data = result.input
     b, v, _, h, w = rendered_image.size()
-
+    
     for batch_idx in range(input_data["image"].size(0)):
         scene_name = input_data["scene_name"][0]
         sample_dir = os.path.join(out_dir, f"{uid:06d}_{scene_name}")

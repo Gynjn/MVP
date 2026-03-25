@@ -6,6 +6,7 @@
 *.ckpt
 *.pth
 *.mat
+*.sh
 
 .vscode/
 __pycache__/

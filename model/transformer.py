@@ -3,9 +3,12 @@ import torch.nn as nn
 import torch.nn.functional as F
 from einops import rearrange
 
+try:
+    from flash_attn.cute import flash_attn_func
+    FA4_AVAILABLE = True
+except ImportError:
+    FA4_AVAILABLE = False
 
-def modulate(x, shift, scale):
-    return x * (1 + scale.unsqueeze(1)) + shift.unsqueeze(1)
 
 # src: https://github.com/pytorch/benchmark/blob/main/torchbenchmark/models/llama/model.py#L28
 class RMSNorm(nn.Module):
@@ -71,12 +74,18 @@ class SelfAttention(nn.Module):
         x: (b, l, d)
         """
         qkv = self.to_qkv(x)
-        q, k, v = rearrange(qkv, "b l (qkv nh dh) -> qkv b nh l dh", qkv=3, dh=self.head_dim)
+        if FA4_AVAILABLE:
+            q, k, v = rearrange(qkv, "b l (qkv nh dh) -> qkv b l nh dh", qkv=3, dh=self.head_dim)
+        else:
+            q, k, v = rearrange(qkv, "b l (qkv nh dh) -> qkv b nh l dh", qkv=3, dh=self.head_dim)
         if self.use_qk_norm:
             q = self.q_norm(q)
-            k = self.k_norm(k)
+            k = self.k_norm(k)          
         if stage == 1:
-            x = F.scaled_dot_product_attention(q, k, v)            
+            if FA4_AVAILABLE:
+                x, _ = flash_attn_func(q, k, v, causal=self.causal)
+            else:
+                x = F.scaled_dot_product_attention(q, k, v, is_causal=self.causal)
 
         elif stage == 2:
             if prope:
@@ -114,7 +123,10 @@ class SelfAttention(nn.Module):
                     viewmats=None,
                     Ks=None,                    
                 )
-        x = rearrange(x, "b nh l dh -> b l (nh dh)")
+        if FA4_AVAILABLE:
+            x = rearrange(x, "b l nh dh -> b l (nh dh)")
+        else:
+            x = rearrange(x, "b nh l dh -> b l (nh dh)")
 
         x = self.c_proj(x)
         return x
