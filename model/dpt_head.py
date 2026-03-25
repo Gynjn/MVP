@@ -2,7 +2,7 @@ from typing import List, Tuple
 from einops import rearrange
 import torch
 import torch.nn as nn
-from utils import create_uv_grid, position_grid_to_embed
+from model.utils import create_uv_grid, position_grid_to_embed
 
 
 class DPTHead(nn.Module):

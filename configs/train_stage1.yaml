@@ -1,5 +1,5 @@
 model:
-  class_name: model.MVPModel
+  class_name: model.model.MVPModel
 
   patch_factor: 4 # half for stage1 training
   dim1: 256

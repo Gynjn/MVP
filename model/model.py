@@ -9,14 +9,14 @@ import traceback
 from gsplat import rasterization
 import torch.nn.functional as F
 import os
-from transformer import TransformerBlock
-from utils import (
+from model.transformer import TransformerBlock
+from model.utils import (
     compute_rays, 
     compute_plucmap,
 )
 import numpy as np
-from prope_custom import PropeDotProductAttention
-from dpt_head import DPTHead
+from model.prope_custom import PropeDotProductAttention
+from model.dpt_head import DPTHead
 # torch version of the spherical harmonics opacity calculation, 
 # which is used for regularization during training
 # from torch_impl import _spherical_harmonics
@@ -266,7 +266,7 @@ class MVPModel(nn.Module):
             requires_grad(self.resize_block2, False)            
 
         if not self.inference_mode:
-            from loss import LossComputer
+            from model.loss import LossComputer
             self.loss_computer = LossComputer(config)
 
     def train(self, mode=True):
@@ -581,7 +581,7 @@ class MVPModel(nn.Module):
         input_c2ws: (V, 4, 4)
         """
         import cv2
-        from camera_utils import get_interpolated_poses_many
+        from model.camera_utils import get_interpolated_poses_many
         import subprocess
         V = input_intr.shape[0]
         device = input_intr.device

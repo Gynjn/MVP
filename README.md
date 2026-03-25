@@ -12,9 +12,9 @@ Official repo for the paper "**Multi-view Pyramid Transformer: Look Coarser to S
 ## News
 
 
-[Mar 2026] We've updated the codebase with a CUDA implementation of Opacity with SH coefficients, reducing both training time and memory consumption. Kudos to [Hyeongbhin-Cho](https://github.com/Hyeongbhin-Cho) for the contribution. See details in the original [repo](https://github.com/Hyeongbhin-Cho/gsplat_vlab).
+**[Mar 2026]** We've updated the codebase with a CUDA implementation of Opacity with SH coefficients, reducing both training time and memory consumption. Kudos to [Hyeongbhin-Cho](https://github.com/Hyeongbhin-Cho) for the contribution. See details in the original [repo](https://github.com/Hyeongbhin-Cho/gsplat_vlab).
 
-[Mar 2026] We've released [2Xplat](https://hwasikjeong.github.io/2Xplat/), a pose-free version of MVP built on a two-expert design — one for camera pose estimation, one for 3DGS generation. It outperforms prior pose-free methods and matches state-of-the-art posed approaches in under 5K training iterations.
+**[Mar 2026]** We've released [2Xplat](https://hwasikjeong.github.io/2Xplat/), a pose-free version of MVP built on a two-expert design — one for camera pose estimation, one for 3DGS generation. It outperforms prior pose-free methods and matches state-of-the-art posed approaches in under 5K training iterations.
 
 ## Installation
 
