@@ -1,5 +1,5 @@
 model:
-  class_name: model.MVPModel
+  class_name: model.mvp.MVPModel
 
   patch_factor: 2
   dim1: 256
