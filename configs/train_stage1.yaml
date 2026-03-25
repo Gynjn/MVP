@@ -50,6 +50,8 @@ training:
   use_tf32: true
   amp_dtype: bf16
 
+  chunk_size: 4
+
   api_key_path: ./configs/api_keys.yaml
   batch_size_per_gpu: 8
   warmup: 3000

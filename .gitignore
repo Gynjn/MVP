@@ -1,0 +1,19 @@
+**/output/
+**/checkpoints/
+**/experiments/
+**/wandb/
+*.pt
+*.ckpt
+*.pth
+*.mat
+
+.vscode/
+__pycache__/
+*.pyc
+.venv/
+.ipynb_checkpoints/
+
+# 부가 데이터
+rendering_cuda/docs/source/assets/*.gif
+rendering_cuda/docs/source/assets/*.mp4
+rendering_cuda/assets/*.npz

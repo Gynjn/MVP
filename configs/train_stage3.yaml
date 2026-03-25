@@ -54,6 +54,8 @@ training:
   use_tf32: true
   amp_dtype: bf16
 
+  chunk_size: 4
+
   api_key_path: ./configs/api_keys_test.yaml
   num_views: [16, 32, 64, 128] # input
   target_views: [6, 6, 6, 1]

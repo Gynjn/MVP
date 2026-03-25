@@ -4,12 +4,9 @@ import time
 import wandb
 import torch
 from rich import print
-from torch.nn.parallel import DistributedDataParallel as DDP
-from torch.utils.data import DataLoader, DistributedSampler
-import torch.distributed as dist
-from setup import init_config, init_distributed, init_wandb_and_backup
-from training_utils import create_optimizer, create_lr_scheduler, auto_resume_job, print_rank0
-import math
+from torch.utils.data import DataLoader
+from setup import init_config, init_wandb_and_backup
+from training_utils import create_optimizer, create_lr_scheduler, auto_resume_job
 
 
 def remove_module_prefix(state_dict):
@@ -107,7 +104,7 @@ optimizer, lr_scheduler, cur_train_step, cur_param_update_step = auto_resume_job
 
 enable_grad_scaler = config.training.use_amp and config.training.amp_dtype == "fp16"
 scaler = torch.amp.GradScaler('cuda', enabled=enable_grad_scaler)
-print_rank0(f"Grad scaler enabled: {enable_grad_scaler}")
+print(f"Grad scaler enabled: {enable_grad_scaler}")
 
 start_train_step = cur_train_step
 model.train()

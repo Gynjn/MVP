@@ -1,20 +1,17 @@
 import importlib
-import functools
 import os
 import time
 import wandb
 import torch
 from rich import print
 from torch.nn.parallel import DistributedDataParallel as DDP
-from torch.utils.data import DataLoader, DistributedSampler
 import torch.distributed as dist
 from setup import init_config, init_distributed, init_wandb_and_backup
 from training_utils import create_optimizer, create_lr_scheduler, auto_resume_job, print_rank0
-from loss import LossComputer
-import math
 from copy import deepcopy
 from collections import OrderedDict
 from data import get_train_data_loader
+
 
 @torch.no_grad()
 def update_ema(ema_model, model, decay=0.999):
@@ -70,27 +67,6 @@ amp_dtype_mapping = {
     'tf32': torch.float32
 }
 
-# Load dataset
-# dataset_name = config.training.get("dataset_name", "data.dataset.Dataset")
-# module, class_name = dataset_name.rsplit(".", 1)
-# Dataset = importlib.import_module(module).__dict__[class_name]
-# dataset = Dataset(config)
-# batch_size_per_gpu = config.training.batch_size_per_gpu
-
-# datasampler = DistributedSampler(dataset)
-# dataloader = DataLoader(
-#     dataset,
-#     batch_size=batch_size_per_gpu,
-#     shuffle=False,
-#     num_workers=config.training.num_workers,
-#     persistent_workers=True,
-#     pin_memory=False,
-#     drop_last=True,
-#     prefetch_factor=config.training.prefetch_factor,
-#     sampler=datasampler,
-# )
-# dataloader_iter = iter(dataloader)
-
 data_loader = get_train_data_loader(
     config,
     num_workers=config.training.num_workers,
@@ -103,17 +79,13 @@ total_train_steps = config.training.train_steps
 grad_accum_steps = config.training.grad_accum_steps
 total_param_update_steps = total_train_steps
 total_train_steps = total_train_steps * grad_accum_steps # real train steps when using gradient accumulation
-# total_batch_size = batch_size_per_gpu * ddp_info.world_size * grad_accum_steps
-# total_num_epochs = int(total_param_update_steps * total_batch_size / len(dataset))
 
 
 module, class_name = config.model.class_name.rsplit(".", 1)
 MVP = importlib.import_module(module).__dict__[class_name]
 model = MVP(config).to(ddp_info.device)
 ema = deepcopy(model).to(ddp_info.device)
-# ema99 = deepcopy(model).to(ddp_info.device)
 requires_grad(ema, False)
-# requires_grad(ema99, False)
 model = DDP(model, device_ids=[ddp_info.local_rank])
 
 
@@ -209,15 +181,6 @@ for epoch in range(1000000):
         total_grad_norm = 0
 
         if update_grads:
-            # if not skip_optimizer_step:
-            #     total_grad_norm = torch.nn.utils.clip_grad_norm_(optim_param_list, max_norm=config.training.grad_clip_norm).item()
-                # if not math.isfinite(total_grad_norm):
-                #     print(f"WARNING: step {cur_train_step} got non-finite grad norm {total_grad_norm}, skipping optimizer step")
-                #     skip_optimizer_step = True
-                # elif total_grad_norm > config.training.grad_clip_norm * 5.0:
-                #     print(f"WARNING: step {cur_train_step} grad norm too large {total_grad_norm} > {config.training.grad_clip_norm * 5.0}, skipping optimizer step")
-                #     skip_optimizer_step = True
-            
             if not skip_optimizer_step:
                 optimizer.step()
                 cur_param_update_step += 1

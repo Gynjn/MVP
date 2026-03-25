@@ -1,3 +1,5 @@
+from contextlib import nullcontext
+
 import torch
 from torch import nn
 from easydict import EasyDict as edict
@@ -13,9 +15,15 @@ from utils import (
     compute_plucmap,
 )
 import numpy as np
-from dpt_head import DPTHead
-from torch_impl import _spherical_harmonics
 from prope_custom import PropeDotProductAttention
+from dpt_head import DPTHead
+# torch version of the spherical harmonics opacity calculation, 
+# which is used for regularization during training
+# from torch_impl import _spherical_harmonics
+
+# the CUDA version of the spherical harmonics opacity calculation, 
+# which is used for regularization during training
+from sh_cuda.mvp_cuda import spherical_harmonics_opacity
 
 def requires_grad(model, flag=True):
     """
@@ -36,47 +44,77 @@ def _init_weights(module):
 
 
 class GaussianRenderer(torch.autograd.Function):
+    CHUNK_SIZE = 1
+    
     @staticmethod
     def render(xyz, feature, scale, rotation, opacity, test_c2w, test_intr, 
-               W, H, sh_degree, near_plane, far_plane):
-        opacity = opacity.sigmoid().squeeze(-1)
+               W, H, sh_degree, near_plane, far_plane, sh_degree_opacity):
+        batch_dims = xyz.shape[:-2]
+        N = xyz.shape[-2]
+        C = test_c2w.shape[-3]
+        K = (sh_degree + 1) ** 2
+        K_opacity = (sh_degree_opacity + 1) ** 2
+        
+        # dim check
+        assert (xyz.shape == batch_dims + (N, 3)), xyz.shape
+        assert (feature.shape == batch_dims + (N, K, 3)), feature.shape
+        assert (scale.shape == batch_dims + (N, 3)), scale.shape
+        assert (rotation.shape == batch_dims + (N, 4)), rotation.shape
+        assert (opacity.shape == batch_dims + (N, K_opacity, 1)), opacity.shape
+        assert (test_c2w.shape == batch_dims + (C, 4, 4)), test_c2w.shape
+        assert (test_intr.shape == batch_dims + (C, 4))
+        
         scale = scale.exp()
-        # rotation = F.normalize(rotation, p=2, dim=-1)
-        test_w2c = test_c2w.float().inverse().unsqueeze(0) # (1, 4, 4)
-        test_intr_i = torch.zeros(3, 3).to(test_intr.device)
-        test_intr_i[0, 0] = test_intr[0]
-        test_intr_i[1, 1] = test_intr[1]
-        test_intr_i[0, 2] = test_intr[2]
-        test_intr_i[1, 2] = test_intr[3]
-        test_intr_i[2, 2] = 1
-        test_intr_i = test_intr_i.unsqueeze(0) # (1, 3, 3)
+        rotation = F.normalize(rotation, p=2, dim=-1) # Not necessary, normalized in gsplat
+        batch_dims = xyz.shape[:-2]
+        C = test_c2w.shape[-3]
+        
+        test_w2c = test_c2w.float().inverse() # (..., C, 4, 4)
+        
+        test_intr_i = torch.zeros(batch_dims + (C, 3, 3), device=test_w2c.device, dtype=test_w2c.dtype)
+        test_intr_i[..., 0, 0] = test_intr[..., 0]
+        test_intr_i[..., 1, 1] = test_intr[..., 1]
+        test_intr_i[..., 0, 2] = test_intr[..., 2]
+        test_intr_i[..., 1, 2] = test_intr[..., 3]
+        test_intr_i[..., 2, 2] = 1.0 # (..., C, 3, 3)
+        
+        bg_color = torch.ones(batch_dims + (C, 3), device=test_intr.device, dtype=test_intr.dtype)
+        
         rendering, _, _ = rasterization(xyz, rotation, scale, opacity, feature,
                                         test_w2c, test_intr_i, W, H, sh_degree=sh_degree, 
+                                        sh_degree_opacity=sh_degree_opacity,
                                         near_plane=near_plane, far_plane=far_plane,
                                         packed=False,
                                         absgrad=False,
                                         sparse_grad=False,                                        
                                         render_mode="RGB",
-                                        backgrounds=torch.ones(1, 3).to(test_intr.device),
-                                        rasterize_mode='classic') # (1, H, W, 3) 
-        return rendering # (1, H, W, 3)
+                                        backgrounds=bg_color,
+                                        rasterize_mode='classic') # (..., C, H, W, 3) 
+        return rendering # (..., C, H, W, 3)
 
     @staticmethod
     def forward(ctx, xyz, feature, scale, rotation, opacity, test_c2ws, test_intr,
-                W, H, sh_degree, near_plane, far_plane):
+                W, H, sh_degree, near_plane, far_plane, sh_degree_opacity):
         ctx.save_for_backward(xyz, feature, scale, rotation, opacity, test_c2ws, test_intr)
         ctx.W = W
         ctx.H = H
         ctx.sh_degree = sh_degree
         ctx.near_plane = near_plane
         ctx.far_plane = far_plane
+        ctx.sh_degree_opacity = sh_degree_opacity # [2026-01-19 / Hyeongbhin] 
+        
+        chunk_size = GaussianRenderer.CHUNK_SIZE
+        
         with torch.no_grad():
             B, V, _ = test_intr.shape
             renderings = torch.zeros(B, V, H, W, 3).to(xyz.device)
             for ib in range(B):
-                for iv in range(V):
-                    renderings[ib, iv:iv+1] = GaussianRenderer.render(xyz[ib], feature[ib], scale[ib], rotation[ib], opacity[ib,iv], 
-                                                                      test_c2ws[ib,iv], test_intr[ib,iv], W, H, sh_degree, near_plane, far_plane)
+                for iv in range(0, V, chunk_size):
+                    iv_end = min(iv + chunk_size, V)
+                    renderings[ib, iv:iv_end] = GaussianRenderer.render(xyz[ib], feature[ib], scale[ib], rotation[ib],
+                                                             opacity[ib],
+                                                             test_c2ws[ib, iv:iv_end], test_intr[ib, iv:iv_end], W, H, sh_degree, near_plane, far_plane,
+                                                             sh_degree_opacity)
         renderings = renderings.requires_grad_()
         return renderings
 
@@ -93,15 +131,22 @@ class GaussianRenderer(torch.autograd.Function):
         sh_degree = ctx.sh_degree
         near_plane = ctx.near_plane
         far_plane = ctx.far_plane
+        sh_degree_opacity = ctx.sh_degree_opacity
+        
+        chunk_size = GaussianRenderer.CHUNK_SIZE
+        
         with torch.enable_grad():
             B, V, _ = test_intr.shape
             for ib in range(B):
-                for iv in range(V):
-                    rendering = GaussianRenderer.render(xyz[ib], feature[ib], scale[ib], rotation[ib], opacity[ib,iv], 
-                                                        test_c2ws[ib,iv], test_intr[ib,iv], W, H, sh_degree, near_plane, far_plane)
-                    rendering.backward(grad_output[ib, iv:iv+1])
+                for iv in range(0, V, chunk_size):
+                    iv_end = min(iv + chunk_size, V)
+                    renderings = GaussianRenderer.render(xyz[ib], feature[ib], scale[ib], rotation[ib], 
+                                                        opacity[ib],
+                                                        test_c2ws[ib, iv:iv_end], test_intr[ib, iv:iv_end], W, H, sh_degree, near_plane, far_plane, 
+                                                        sh_degree_opacity)
+                    renderings.backward(grad_output[ib, iv:iv_end])
 
-        return xyz.grad, feature.grad, scale.grad, rotation.grad, opacity.grad, None, None, None, None, None, None, None
+        return xyz.grad, feature.grad, scale.grad, rotation.grad, opacity.grad, None, None, None, None, None, None, None, None
 
 
 class MVPModel(nn.Module):
@@ -118,6 +163,7 @@ class MVPModel(nn.Module):
         self._init_tokenizers()
         self.inference_mode = hasattr(config, "inference")
         self.freeze_prev = config.model.get("freeze_prev", False)
+        GaussianRenderer.CHUNK_SIZE = self.config.training.get("chunk_size", 1)     
 
         self.stage1 = [
             TransformerBlock(
@@ -260,12 +306,11 @@ class MVPModel(nn.Module):
         return tokenizer
 
     def render_one(self, xyz, feature, scale, rotation, opacity, test_c2w, test_intr, 
-               W, H, sh_degree, near_plane, far_plane):
-        opacity = opacity.sigmoid().squeeze(-1)
+               W, H, sh_degree, near_plane, far_plane, sh_degree_opacity):
         scale = scale.exp()
         rotation = F.normalize(rotation, p=2, dim=-1)
         test_w2c = test_c2w.float().inverse().unsqueeze(0) # (1, 4, 4)
-        # test_w2c = test_c2w.float().inverse()
+        
         test_intr_i = torch.zeros(3, 3).to(test_intr.device)
         test_intr_i[0, 0] = test_intr[0]
         test_intr_i[1, 1] = test_intr[1]
@@ -275,6 +320,7 @@ class MVPModel(nn.Module):
         test_intr_i = test_intr_i.unsqueeze(0) # (1, 3, 3)
         rendering, _, _ = rasterization(xyz, rotation, scale, opacity, feature,
                                         test_w2c, test_intr_i, W, H, sh_degree=sh_degree, 
+                                        sh_degree_opacity=sh_degree_opacity,
                                         near_plane=near_plane, far_plane=far_plane,
                                         packed=False,
                                         absgrad=False,
@@ -398,16 +444,12 @@ class MVPModel(nn.Module):
 
             dist = xyz.mean(dim=-1, keepdim=True).sigmoid() * self.config.model.gaussians.max_dist # (B, V*H*W, 1)
             xyz = dist * rayd_gs + rayo_gs
-
-            # precompute opacity to give regularization
-            if not self.inference_mode:
-                dirs = xyz[:, None, :, :] - t_c2w[..., :3, 3][..., None, :] # (B, T, V*H*W, 3)
-                opacity_broad = torch.broadcast_to(
-                    opacity[..., None, :, :, :], (b, t, opacity.shape[1], -1, 1)
-                )
-                opacity_precompute = _spherical_harmonics(
-                    self.config.model.gaussians.opacity_degree,
-                    dirs, opacity_broad)
+            
+            # pytorch version of the spherical harmonics opacity precomputation.
+            # if not self.inference_mode:
+            #     dirs = xyz[:, None, :, :] - t_c2w[..., :3, 3][..., None, :] # (B, T, V*H*W, 3)
+            #     opacity_broad = torch.broadcast_to(opacity[..., None, :, :, :], (b, t, opacity.shape[1], -1, 1))
+            #     opacity_precompute = _spherical_harmonics(self.config.model.gaussians.opacity_degree, dirs, opacity_broad)
 
         if not self.inference_mode:
             gaussians = {
@@ -415,33 +457,19 @@ class MVPModel(nn.Module):
                 "feature": feature,
                 "scale": scale,
                 "rotation": rotation,
-                "opacity": opacity_precompute,
+                "opacity": opacity,
             }
 
             with torch.autocast(device_type="cuda", enabled=False):
                 # Rasterization
-                # renderings = self.render(
-                #     gaussians["xyz"], 
-                #     gaussians["feature"], 
-                #     gaussians["scale"], 
-                #     gaussians["rotation"], 
-                #     gaussians["opacity"], 
-                #     t_c2w, 
-                #     t_fxfycxcy, 
-                #     w, h
-                # )
                 renderings = GaussianRenderer.apply(
-                    gaussians["xyz"], 
-                    gaussians["feature"], 
-                    gaussians["scale"], 
-                    gaussians["rotation"], 
-                    gaussians["opacity"], 
-                    t_c2w, 
-                    t_fxfycxcy, 
-                    w, h,
+                    gaussians["xyz"], gaussians["feature"], gaussians["scale"], 
+                    gaussians["rotation"], gaussians["opacity"], 
+                    t_c2w, t_fxfycxcy, w, h,
                     self.config.model.gaussians.sh_degree,
                     self.config.model.gaussians.near_plane,
                     self.config.model.gaussians.far_plane,
+                    self.config.model.gaussians.opacity_degree
                 ) # (B, V, H, W, 3)
 
             renderings = renderings.permute(0, 1, 4, 2, 3).contiguous() # (B, V, 3, H, W)
@@ -452,13 +480,16 @@ class MVPModel(nn.Module):
             )
 
             with torch.autocast(device_type="cuda", enabled=False):
-                ## opacity regularization
-                rand_dirs = torch.randn_like(xyz)
-                rand_dirs = F.normalize(rand_dirs, p=2, dim=-1) # make it a unit vector
-                opacity_random = _spherical_harmonics(
+                ## pytorch version of opacity regularization
+                # rand_dirs = torch.randn_like(xyz)
+                # rand_dirs = F.normalize(rand_dirs, p=2, dim=-1) # make it a unit vector
+                # opacity_random = _spherical_harmonics(self.config.model.gaussians.opacity_degree, rand_dirs, opacity)
+                # opacity_random = opacity_random.sigmoid().mean()
+
+                rand_dirs = torch.randn_like(xyz, requires_grad=False)
+                opacity_random = spherical_harmonics_opacity(
                     self.config.model.gaussians.opacity_degree,
-                    rand_dirs, opacity)
-                opacity_random = opacity_random.sigmoid().mean()
+                    rand_dirs, opacity).mean()
 
             loss_metrics["opacity_loss"] = opacity_random * 0.001
             loss_metrics["loss"] = loss_metrics["loss"] + loss_metrics["opacity_loss"]
@@ -474,28 +505,29 @@ class MVPModel(nn.Module):
 
         else: #inference mode
             gaussians = {
-                "xyz": xyz[0],
-                "feature": feature[0],
-                "scale": scale[0],
-                "rotation": rotation[0],
-                "opacity": opacity[0],
+                "xyz": xyz,
+                "feature": feature,
+                "scale": scale,
+                "rotation": rotation,
+                "opacity": opacity,
             }
 
             renderings = []
 
             with torch.no_grad(), torch.autocast(device_type="cuda", enabled=False):
-                for i in range(t):            
-                    dir = gaussians["xyz"] - t_c2w[0, i:i+1, :3, 3][None, ...] # (1, N, 3)
-                    opacity_i = _spherical_harmonics(
-                        self.config.model.gaussians.opacity_degree,
-                        dir, gaussians["opacity"][None, ...])[0] # (N, 1)
-                    rendering = GaussianRenderer.render(gaussians["xyz"], gaussians["feature"], gaussians["scale"], gaussians["rotation"], opacity_i, 
-                                                t_c2w[0, i], t_fxfycxcy[0, i], w, h, 
-                                                self.config.model.gaussians.sh_degree, 
-                                                self.config.model.gaussians.near_plane, 
-                                                self.config.model.gaussians.far_plane)
+                for t_i in range(t):            
+                    rendering = GaussianRenderer.render(
+                        gaussians["xyz"], gaussians["feature"], gaussians["scale"], 
+                        gaussians["rotation"], gaussians["opacity"], 
+                        t_c2w[:, t_i:t_i+1], t_fxfycxcy[:, t_i:t_i+1], w, h, 
+                        self.config.model.gaussians.sh_degree, 
+                        self.config.model.gaussians.near_plane, 
+                        self.config.model.gaussians.far_plane, 
+                        self.config.model.gaussians.opacity_degree
+                    )
                     renderings.append(rendering)
-                renderings = torch.cat(renderings, dim=0)[None, ...] # (1, T, H, W, 3)
+                
+                renderings = torch.cat(renderings, dim=1)# (1, T, H, W, 3)
             
             renderings = renderings.permute(0, 1, 4, 2, 3).contiguous() # (B, V, 3, H, W)
 
@@ -583,16 +615,13 @@ class MVPModel(nn.Module):
 
         renderings = []
         with torch.autocast(enabled=False, device_type="cuda"):
-            for i in range(V):
-                dir = xyz - c2ws_mat[i:i+1, :3, 3][None, ...] # (1, N, 3)
-                opacity_i = _spherical_harmonics(
-                    self.config.model.gaussians.opacity_degree,
-                    dir, opacity[None, ...])[0] # (N, 1)
-                rendering = self.render_one(xyz, feature, scale, rotation, opacity_i, 
-                                            c2ws_mat[i], intr_fxfycxcy[i], W, H, 
+            for i_v in range(V):
+                rendering = self.render_one(xyz, feature, scale, rotation, opacity, 
+                                            c2ws_mat[i_v], intr_fxfycxcy[i_v], W, H, 
                                             self.config.model.gaussians.sh_degree, 
                                             self.config.model.gaussians.near_plane, 
-                                            self.config.model.gaussians.far_plane)
+                                            self.config.model.gaussians.far_plane,
+                                            self.config.model.gaussians.opacity_degree)
                 rendering = rendering.squeeze(0).clamp(0, 1).cpu().numpy() # (H, W, 3)
                 rendering = (rendering * 255).astype(np.uint8)
                 rendering = cv2.cvtColor(rendering, cv2.COLOR_RGB2BGR)

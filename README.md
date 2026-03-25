@@ -9,16 +9,35 @@
 
 Official repo for the paper "**Multi-view Pyramid Transformer: Look Coarser to See Broader**"
 
+## News
+
+
+[Mar 2026] We've updated the codebase with a CUDA implementation of Opacity with SH coefficients, reducing both training time and memory consumption. Kudos to [Hyeongbhin-Cho](https://github.com/Hyeongbhin-Cho) for the contribution. See details in the original [repo](https://github.com/Hyeongbhin-Cho/gsplat_vlab).
+
+[Mar 2026] We've released [2Xplat](https://hwasikjeong.github.io/2Xplat/), a pose-free version of MVP built on a two-expert design — one for camera pose estimation, one for 3DGS generation. It outperforms prior pose-free methods and matches state-of-the-art posed approaches in under 5K training iterations.
+
 ## Installation
 
 ```bash
-# create conda environment
+# 1. Clone the repository
+# If starting fresh (clone everything at once):
+git clone --recurse-submodules https://github.com/Gynjn/MVP.git
+
+# If already cloned (initialize submodules):
+git submodule update --init --recursive
+
+# 2. Create and activate conda environment
 conda create -n mvp python=3.11 -y
 conda activate mvp
 
-# install PyTorch (adjust cuda version according to your system)
+# 3. Install dependencies (adjust CUDA version in requirements.txt to match your system)
 pip install -r requirements.txt
-pip install git+https://github.com/nerfstudio-project/gsplat.git
+
+# 4. Install CUDA kernels
+cd rendering_cuda
+pip install . --no-build-isolation
+cd ../sh_cuda
+pip install . --no-build-isolation
 ```
 
 ## Checkpoints

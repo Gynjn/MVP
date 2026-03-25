@@ -4,6 +4,7 @@ import lpips
 import torch.nn as nn
 import torch
 import torch.nn.functional as F
+import torch.distributed as dist
 from easydict import EasyDict as edict
 from torchvision.models import vgg19
 import scipy.io
@@ -36,11 +37,14 @@ class PerceptualLoss(nn.Module):
         weight_file = Path("./imagenet-vgg-verydeep-19.mat")
         weight_file.parent.mkdir(exist_ok=True, parents=True)
         
-        if torch.distributed.get_rank() == 0:
-            # Download weights if needed
+        if dist.is_initialized():
+            if torch.distributed.get_rank() == 0:
+                if not weight_file.exists():
+                    os.system(f'wget https://www.vlfeat.org/matconvnet/models/imagenet-vgg-verydeep-19.mat -O {weight_file}')
+            torch.distributed.barrier()
+        else:
             if not weight_file.exists():
                 os.system(f'wget https://www.vlfeat.org/matconvnet/models/imagenet-vgg-verydeep-19.mat -O {weight_file}')
-        torch.distributed.barrier()
         
         # Load MatConvNet weights
         vgg_data = scipy.io.loadmat(weight_file)

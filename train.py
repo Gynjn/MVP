@@ -1,5 +1,4 @@
 import importlib
-import functools
 import os
 import time
 import wandb
@@ -9,11 +8,10 @@ from torch.nn.parallel import DistributedDataParallel as DDP
 from torch.utils.data import DataLoader, DistributedSampler
 import torch.distributed as dist
 from setup import init_config, init_distributed, init_wandb_and_backup
-from training_utils import create_optimizer, create_lr_scheduler, auto_resume_job, print_rank0
-from loss import LossComputer
-import math
+from training_utils import create_optimizer, create_lr_scheduler, auto_resume_job
 from copy import deepcopy
 from collections import OrderedDict
+
 
 @torch.no_grad()
 def update_ema(ema_model, model, decay=0.999):
@@ -102,9 +100,7 @@ module, class_name = config.model.class_name.rsplit(".", 1)
 MVP = importlib.import_module(module).__dict__[class_name]
 model = MVP(config).to(ddp_info.device)
 ema = deepcopy(model).to(ddp_info.device)
-# ema99 = deepcopy(model).to(ddp_info.device)
 requires_grad(ema, False)
-# requires_grad(ema99, False)
 model = DDP(model, device_ids=[ddp_info.local_rank])
 
 
@@ -146,7 +142,6 @@ start_train_step = cur_train_step
 update_ema(ema, model.module, decay=0)
 model.train()
 ema.eval()
-# ema99.eval()
 
 while cur_train_step <= total_train_steps:
     tic = time.time()
@@ -188,15 +183,6 @@ while cur_train_step <= total_train_steps:
     total_grad_norm = 0
 
     if update_grads:
-        # if not skip_optimizer_step:
-        #     total_grad_norm = torch.nn.utils.clip_grad_norm_(optim_param_list, max_norm=config.training.grad_clip_norm).item()
-            # if not math.isfinite(total_grad_norm):
-            #     print(f"WARNING: step {cur_train_step} got non-finite grad norm {total_grad_norm}, skipping optimizer step")
-            #     skip_optimizer_step = True
-            # elif total_grad_norm > config.training.grad_clip_norm * 5.0:
-            #     print(f"WARNING: step {cur_train_step} grad norm too large {total_grad_norm} > {config.training.grad_clip_norm * 5.0}, skipping optimizer step")
-            #     skip_optimizer_step = True
-        
         if not skip_optimizer_step:
             optimizer.step()
             cur_param_update_step += 1
@@ -204,7 +190,6 @@ while cur_train_step <= total_train_steps:
         lr_scheduler.step()
         if not skip_optimizer_step:
             update_ema(ema, model.module)
-            # update_ema(ema99, model.module, 0.99)
 
     # log and save checkpoint
     if ddp_info.is_main_process:
@@ -242,7 +227,6 @@ while cur_train_step <= total_train_steps:
             checkpoint = {
                 "model": remove_module_prefix(model.state_dict()),
                 "ema": ema.state_dict(),
-                # "ema99": ema99.state_dict(),
                 "optimizer": optimizer.state_dict(),
                 "lr_scheduler": lr_scheduler.state_dict(),
                 "fwdbwd_pass_step": cur_train_step,
@@ -252,8 +236,6 @@ while cur_train_step <= total_train_steps:
             ckpt_path = os.path.join(config.training.checkpoint_dir, f"ckpt_{cur_train_step:016}.pt")
             torch.save(checkpoint, ckpt_path)
             print(f"Saved checkpoint at step {cur_train_step} to {os.path.abspath(ckpt_path)}")
-        
-        
 
 dist.barrier()
 dist.destroy_process_group()
